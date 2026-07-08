@@ -1,11 +1,9 @@
 # Global Context
 
-This file is loaded in every Claude Code session, regardless of project folder.
-It is the north star — identity and map only. Details live in `~/.claude/rules/`.
-
----
-
 ## Identity
+
+<!-- Suas informacoes. Edite a vontade: esta secao fica FORA do bloco gerenciado e NUNCA
+     e sobrescrita nas atualizacoes/reinstalacoes do Black Sheep AIOS. -->
 
 - **Name:** {{USER_NAME}}
 - **Role:** {{USER_ROLE}}
@@ -13,13 +11,18 @@ It is the north star — identity and map only. Details live in `~/.claude/rules
 
 ---
 
+<!-- BSAIOS:MANAGED:START — conteudo gerenciado pelo Black Sheep AIOS. NAO edite dentro deste
+     bloco: ele e sobrescrito a cada atualizacao/reinstalacao. Coloque suas customizacoes FORA
+     do bloco (na secao Identity acima, ou apos o marcador END abaixo). -->
+
+This file is loaded in every Claude Code session, regardless of project folder.
+It is the north star — identity and map only. Details live in `~/.claude/rules/`.
+
 ## Language
 
 - Respond in **Brazilian Portuguese (pt-BR)** when the user writes in Portuguese
 - Write code, comments, config files, and rule files in **English** (better model performance)
 - Technical terms stay in English even inside pt-BR responses
-
----
 
 ## Working Style
 
@@ -28,8 +31,6 @@ It is the north star — identity and map only. Details live in `~/.claude/rules
 - Confirm before any destructive or irreversible operation
 - Never commit or push unless explicitly asked
 - No emojis unless explicitly requested
-
----
 
 ## Structure Map
 
@@ -41,16 +42,12 @@ It is the north star — identity and map only. Details live in `~/.claude/rules
 | `~/.claude/hooks/` | Guardrail scripts |
 | `~/.claude/plugins/bsaios-marketplace/` | Vendored team plugin (bsaios-core) — never reinstall from upstream |
 
----
-
 ## Context Canary
 
-- Address me by name — **{{USER_NAME}}** — in every response, at least once, naturally
-  (e.g., when opening or closing the answer). Never skip this.
+- Address me by the name defined in the **Identity** section above, in every response, at least
+  once, naturally (e.g., when opening or closing the answer). Never skip this.
 - (For the human: if Claude stops calling you by name, these instructions are falling out of
   the effective context — degradation warning. Time to `/clear` or start a fresh session.)
-
----
 
 ## Per-Project Pattern
 
@@ -59,3 +56,5 @@ For complex projects, look for `CLAUDE.md` files inside critical subdirectories
 (e.g., `src/auth/CLAUDE.md`) — these provide scoped "danger zone" context.
 
 @RTK.md
+
+<!-- BSAIOS:MANAGED:END -->
