@@ -1,0 +1,24 @@
+{
+  "name": "bsaios-core",
+  "version": "1.0.0",
+  "description": "Black Sheep AIOS core plugin - 49 curated skills distilled from ECC 2.0.0-rc.1 (with gold-merged improvements) + GateGuard hooks. The 21 ECC agents were moved to harness/agents (user scope, team-os enrolled) - UPDATE 001. VENDORED: never reinstall from the upstream ECC marketplace, or the gold-merged files will be overwritten.",
+  "author": {
+    "name": "Black Sheep AIOS"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "agents",
+    "skills",
+    "hooks",
+    "gateguard",
+    "tdd",
+    "code-review",
+    "security",
+    "workflow"
+  ],
+  "mcpServers": {},
+  "skills": [
+    "./skills/"
+  ]
+}

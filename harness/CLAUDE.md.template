@@ -1,0 +1,61 @@
+# Global Context
+
+This file is loaded in every Claude Code session, regardless of project folder.
+It is the north star — identity and map only. Details live in `~/.claude/rules/`.
+
+---
+
+## Identity
+
+- **Name:** {{USER_NAME}}
+- **Role:** {{USER_ROLE}}
+- **Focus areas:** {{USER_FOCUS}}
+
+---
+
+## Language
+
+- Respond in **Brazilian Portuguese (pt-BR)** when the user writes in Portuguese
+- Write code, comments, config files, and rule files in **English** (better model performance)
+- Technical terms stay in English even inside pt-BR responses
+
+---
+
+## Working Style
+
+- Direct and objective — no filler, no lengthy preambles
+- Ask clarifying questions before starting complex or ambiguous tasks
+- Confirm before any destructive or irreversible operation
+- Never commit or push unless explicitly asked
+- No emojis unless explicitly requested
+
+---
+
+## Structure Map
+
+| Location | Purpose |
+|---|---|
+| `~/.claude/rules/` | Behavioral rules (modular, some lazy-loaded by file type) |
+| `~/.claude/skills/` | Slash commands (auto-indexed by Claude Code) |
+| `~/.claude/agents/` | Reusable subagent definitions with model specs |
+| `~/.claude/hooks/` | Guardrail scripts |
+| `~/.claude/plugins/bsaios-marketplace/` | Vendored team plugin (bsaios-core) — never reinstall from upstream |
+
+---
+
+## Context Canary
+
+- Address me by name — **{{USER_NAME}}** — in every response, at least once, naturally
+  (e.g., when opening or closing the answer). Never skip this.
+- (For the human: if Claude stops calling you by name, these instructions are falling out of
+  the effective context — degradation warning. Time to `/clear` or start a fresh session.)
+
+---
+
+## Per-Project Pattern
+
+When opening a project folder, look for a local `CLAUDE.md` at the project root.
+For complex projects, look for `CLAUDE.md` files inside critical subdirectories
+(e.g., `src/auth/CLAUDE.md`) — these provide scoped "danger zone" context.
+
+@RTK.md

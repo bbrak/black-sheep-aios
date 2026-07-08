@@ -1,0 +1,132 @@
+{
+  "_comment": "Template do settings.json do time (Black Sheep AIOS). NAO use direto: o instalador substitui {{CLAUDE_HOME}} e {{PYTHON}} e remove o hook do rtk no Windows nativo. GateGuard vem LIGADO via plugin bsaios-core (escape hatches em docs/gateguard.md).",
+  "env": {
+    "CLAUDE_CONTEXT_COLLAPSE": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ECC_CONTEXT_MONITOR_COST_WARNINGS": "off",
+    "ECC_DISABLED_HOOKS": "pre:write:doc-file-warning,pre:governance-capture,post:governance-capture,post:edit:console-warn,stop:desktop-notify,stop:cost-tracker,stop:session-end,stop:evaluate-session,pre:observe:continuous-learning,post:observe:continuous-learning"
+  },
+  "permissions": {
+    "allow": [
+      "Skill(*)",
+      "Bash(claude:*)",
+      "mcp__context7__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(sudo rm -rf:*)",
+      "Bash(mkfs:*)",
+      "Bash(dd if=/dev/zero:*)",
+      "Bash(chmod -R 777 /)",
+      "Bash(setx *)",
+      "Bash(reg add *)",
+      "Bash(reg delete HKCU*)",
+      "Bash(reg delete HKLM*)",
+      "Bash(reg export *)",
+      "Bash(curl * .credentials*)",
+      "Bash(curl *--data* http*)",
+      "Bash(curl *-d @*)",
+      "Bash(Invoke-WebRequest* -Body*)",
+      "Bash(Invoke-WebRequest* .credentials*)",
+      "Read(**/.credentials.json)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$({{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',d).get('command',''))\" 2>/dev/null || true); case \"$CMD\" in *grep*|*rg\\ *|*ripgrep*|*find\\ *|*fd\\ *|*ack\\ *|*ag\\ *)   [ -f graphify-out/graph.json ] &&   echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"graphify: Knowledge graph exists. Read graphify-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files.\"}}'   || true ;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON}} {{CLAUDE_HOME}}/hooks/validate-agent-frontmatter.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{CLAUDE_HOME}}/hooks/team/session-context.js",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{CLAUDE_HOME}}/hooks/team/skill-suggester.js",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node {{CLAUDE_HOME}}/hooks/team/loop-detector.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash {{CLAUDE_HOME}}/hooks/git-moment-advisor.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node {{CLAUDE_HOME}}/statusline-command.js"
+  },
+  "enabledPlugins": {
+    "bsaios-core@bsaios": true,
+    "claude-md-management@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "bsaios": {
+      "source": {
+        "source": "directory",
+        "path": "{{CLAUDE_HOME}}/plugins/bsaios-marketplace"
+      }
+    }
+  }
+}

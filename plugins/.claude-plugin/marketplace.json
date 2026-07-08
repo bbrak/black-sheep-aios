@@ -1,0 +1,25 @@
+{
+  "name": "bsaios",
+  "owner": {
+    "name": "Black Sheep AIOS"
+  },
+  "metadata": {
+    "description": "Marketplace local (por diretorio) do Black Sheep AIOS. O instalador copia esta pasta para {{CLAUDE_HOME}}/plugins/bsaios-marketplace e registra em extraKnownMarketplaces."
+  },
+  "plugins": [
+    {
+      "name": "bsaios-core",
+      "source": "./bsaios-core",
+      "description": "49 skills curadas (destiladas do ECC 2.0.0-rc.1, com gold merge) + hooks do GateGuard. Os 21 agents ECC vivem no harness (escopo usuario, enrolados p/ team-os). Vendorizado - nunca instalar o ECC do marketplace upstream.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "workflow",
+      "tags": [
+        "skills",
+        "agents",
+        "hooks",
+        "gateguard"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# Allowlist do skill-suggester (OPCIONAL).
+# Copie este arquivo para "suggest-allowlist.txt" (mesma pasta) e liste UM nome de skill por linha.
+# Se o arquivo existir e tiver nomes, SÓ essas skills entram nas sugestões.
+# Recomendado para quem tem MUITAS skills instaladas (dezenas/centenas) — corta o ruído.
+# Sem este arquivo, o hook considera todas as skills descobertas.
+#
+# Os nomes são os "name" do frontmatter de cada SKILL.md. Veja os seus com:
+#   node -e "const j=require(process.env.USERPROFILE+'/.claude/hooks/team/.skill-index.json');j.skills.forEach(s=>console.log(s.name))"
+#
+# Exemplo (ajuste para as SUAS skills-carro-chefe):
+graphify-windows
+prompt-master
+frontend-design
+agent-browser
+verify-frontend-change

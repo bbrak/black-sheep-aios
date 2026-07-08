@@ -1,0 +1,239 @@
+{
+  "product": "Black Sheep AIOS",
+  "slug": "black-sheep-aios",
+  "version": "1.0.0",
+  "description": "Harness de IA replicavel do time: Claude Code + skills, agents, hooks e rules curados, cross-platform (Windows + macOS).",
+  "claudeHome": {
+    "windows": "%USERPROFILE%\\.claude",
+    "mac": "$HOME/.claude"
+  },
+  "pathToken": "{{CLAUDE_HOME}}",
+  "prerequisites": [
+    {
+      "id": "git",
+      "name": "Git",
+      "why": "Hooks em bash/python precisam do Git Bash no Windows; controle de versao.",
+      "check": {
+        "windows": "git --version",
+        "mac": "git --version"
+      },
+      "install": {
+        "windows": "winget install Git.Git",
+        "mac": "xcode-select --install"
+      }
+    },
+    {
+      "id": "node",
+      "name": "Node.js LTS",
+      "why": "Hooks do time (skill-suggester, loop-detector, session-context), statusline, hooks do bsaios-core e MCPs via npx.",
+      "check": {
+        "windows": "node --version",
+        "mac": "node --version"
+      },
+      "install": {
+        "windows": "winget install OpenJS.NodeJS.LTS",
+        "mac": "brew install node"
+      }
+    },
+    {
+      "id": "python",
+      "name": "Python 3",
+      "why": "Hook validate-agent-frontmatter.py e Graphify. ATENCAO: no Mac o binario e python3.",
+      "check": {
+        "windows": "python --version",
+        "mac": "python3 --version"
+      },
+      "install": {
+        "windows": "winget install Python.Python.3.12",
+        "mac": "brew install python"
+      }
+    },
+    {
+      "id": "uv",
+      "name": "uv (Astral)",
+      "why": "Instalacao recomendada do Graphify.",
+      "check": {
+        "windows": "uv --version",
+        "mac": "uv --version"
+      },
+      "install": {
+        "windows": "winget install astral-sh.uv",
+        "mac": "brew install uv"
+      }
+    },
+    {
+      "id": "jq",
+      "name": "jq",
+      "why": "Usado pelo team-os (scripts/list-teammates.sh) para descobrir agents de plugins no settings.json. Sem ele a descoberta de plugin degrada em silencio (aceitavel, mas instale).",
+      "check": {
+        "windows": "jq --version",
+        "mac": "jq --version"
+      },
+      "install": {
+        "windows": "winget install jqlang.jq",
+        "mac": "brew install jq"
+      }
+    },
+    {
+      "id": "pyyaml",
+      "name": "PyYAML (pacote Python)",
+      "why": "Usado pelo hook validate-agent-frontmatter.py (valida YAML de agents). O hook falha suave sem ele, mas fica inerte.",
+      "check": {
+        "windows": "python -c \"import yaml; print('ok')\"",
+        "mac": "python3 -c \"import yaml; print('ok')\""
+      },
+      "install": {
+        "windows": "python -m pip install pyyaml",
+        "mac": "python3 -m pip install --user --break-system-packages pyyaml || python3 -m pip install --user pyyaml"
+      }
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "why": "Agente principal (terminal). Instalador nativo.",
+      "check": {
+        "windows": "claude --version",
+        "mac": "claude --version"
+      },
+      "install": {
+        "windows": "irm https://claude.ai/install.ps1 | iex",
+        "mac": "curl -fsSL https://claude.ai/install.sh | bash"
+      },
+      "postInstall": {
+        "windows": "claude doctor",
+        "mac": "claude doctor"
+      }
+    }
+  ],
+  "externalTools": [
+    {
+      "id": "rtk",
+      "name": "RTK (Rust Token Killer)",
+      "why": "Proxy CLI que comprime saida de git/npm/gh etc. Economia comprovada de ~70% de tokens.",
+      "hookSupport": {
+        "mac": "completo (install.sh registra o hook automatico)",
+        "windows": "parcial (binario funciona; hook automatico so no WSL; no Windows nativo usa modo CLAUDE.md via @RTK.md)"
+      },
+      "install": {
+        "windows": "Baixar rtk-x86_64-pc-windows-msvc.zip de https://github.com/rtk-ai/rtk/releases, extrair rtk.exe para uma pasta no PATH, depois: rtk init -g",
+        "mac": "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && rtk init -g"
+      },
+      "check": {
+        "windows": "rtk --version",
+        "mac": "rtk --version"
+      },
+      "failSoft": true
+    },
+    {
+      "id": "graphify",
+      "name": "Graphify",
+      "why": "Grafo de conhecimento do codebase (graphify query/path/explain).",
+      "install": {
+        "windows": "uv tool install graphifyy && graphify install && graphify claude install",
+        "mac": "uv tool install graphifyy && graphify install && graphify claude install"
+      },
+      "check": {
+        "windows": "graphify --version",
+        "mac": "graphify --version"
+      },
+      "note": "Pacote PyPI e 'graphifyy' (dois y). Outros pacotes graphify* NAO sao este."
+    },
+    {
+      "id": "agent-browser",
+      "name": "agent-browser",
+      "why": "Navegacao/automacao web para agentes (Playwright MCP fica desativado de proposito).",
+      "install": {
+        "windows": "npm install -g agent-browser && agent-browser install && npx skills add vercel-labs/agent-browser",
+        "mac": "npm install -g agent-browser && agent-browser install && npx skills add vercel-labs/agent-browser"
+      },
+      "check": {
+        "windows": "agent-browser --version",
+        "mac": "agent-browser --version"
+      }
+    }
+  ],
+  "harness": {
+    "note": "Copiado para {{CLAUDE_HOME}} pelo instalador. Conteudo: 6 user skills (incl. team-os, a entrada padrao de multiagentes; ui-ux-pro-max v2.10.2), 44 agents (21 ECC enrolados p/ team-os + 15 dev-* + 8 marketing/negocio do agency-agents - UPDATE 002), hooks (team/ + validate-agent-frontmatter.py + git-moment-advisor.sh), 8 rules (incl. lazy-senior, escada YAGNI always-on), statusline Node cross-platform, context canary no CLAUDE.md. Requer env CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 (ja no settings.team.json).",
+    "settings": "harness/settings.team.json",
+    "claudeMd": "harness/CLAUDE.md.template",
+    "rtkMd": "harness/RTK.md",
+    "skills": "harness/skills",
+    "agents": "harness/agents",
+    "rules": "harness/rules",
+    "hooks": "harness/hooks",
+    "statusline": "harness/statusline-command.js"
+  },
+  "settingsRender": {
+    "note": "Como os instaladores geram o settings.json final a partir de harness/settings.team.json (via install/lib/render-settings.js).",
+    "tokens": {
+      "{{CLAUDE_HOME}}": "caminho absoluto de ~/.claude com barras normais (ex.: C:/Users/nome/.claude ou /Users/nome/.claude)",
+      "{{PYTHON}}": "python no Windows, python3 no macOS"
+    },
+    "platformTweaks": {
+      "windows": "remove o hook PreToolUse 'rtk hook claude' (no Windows nativo o RTK opera em modo CLAUDE.md via @RTK.md)",
+      "mac": "mantem o hook 'rtk hook claude' (fail-soft se o rtk nao estiver instalado)"
+    },
+    "claudeMdTokens": [
+      "{{USER_NAME}}",
+      "{{USER_ROLE}}",
+      "{{USER_FOCUS}}"
+    ]
+  },
+  "vendoredPlugin": {
+    "id": "bsaios-core",
+    "note": "53 skills EMPACOTADAS como plugin local do repo (marketplace por diretorio): 49 derivadas do ECC (NAO instalar de affaan-m/ECC - o cache e efemero e sobrescreveria os 4 arquivos com gold merjado: motion-ui, agent-sort, product-capability, brand-voice) + 4 vendorizadas do obra/superpowers v6.1.1 (brainstorming, systematic-debugging, using-git-worktrees, finishing-a-development-branch - UPDATE 002). Inclui os hooks do GateGuard (ligados). UPDATE 001: os 21 agents ECC sairam do plugin - foram enrolados para o team-os (SendMessage, memory:user) e agora vivem em harness/agents, instalados em {{CLAUDE_HOME}}/agents. Atribuicoes MIT em docs/licenses.md.",
+    "source": "skills/hooks/scripts vendorizados de ~/.claude/plugins/cache/ecc/ecc/2.0.0-rc.1/; os 21 agents (harness/agents) vendorizados de ~/.claude/agents/ (versoes enroladas, update-proof)",
+    "wiring": {
+      "copyTo": "{{CLAUDE_HOME}}/plugins/bsaios-marketplace",
+      "extraKnownMarketplaces": {
+        "bsaios": {
+          "source": {
+            "source": "directory",
+            "path": "{{CLAUDE_HOME}}/plugins/bsaios-marketplace"
+          }
+        }
+      },
+      "enabledPlugins": {
+        "bsaios-core@bsaios": true
+      },
+      "verify": "claude plugin list deve mostrar bsaios-core"
+    },
+    "gateguard": "ligado por padrao (decisao do owner): hooks pre:bash:dispatcher e pre:edit-write:gateguard-fact-force ativos. Escape hatches documentados em docs/gateguard.md",
+    "disabledHookIds": {
+      "value": "pre:write:doc-file-warning,pre:governance-capture,post:governance-capture,post:edit:console-warn,stop:desktop-notify,stop:cost-tracker,stop:session-end,stop:evaluate-session,pre:observe:continuous-learning,post:observe:continuous-learning",
+      "why": "5 primeiros = ruidosos (decisao do owner). cost-tracker = dados descalibrados. session-end/evaluate-session = summarizer sem valor observado. observe:continuous-learning = observer bloqueado no Windows (#295, enabled:false) - sem observer a coleta e so overhead."
+    }
+  },
+  "mcps": {
+    "note": "Dieta de MCP: quase nada e usado nas sessoes de Code. Manter minimo.",
+    "optional": [
+      {
+        "id": "context7",
+        "install": {
+          "windows": "claude mcp add --scope user context7 -- cmd /c npx -y @upstash/context7-mcp@latest",
+          "mac": "claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp@latest"
+        }
+      },
+      {
+        "id": "chrome-devtools",
+        "install": {
+          "windows": "claude mcp add --scope user chrome-devtools -- npx -y chrome-devtools-mcp@latest",
+          "mac": "claude mcp add --scope user chrome-devtools -- npx -y chrome-devtools-mcp@latest"
+        }
+      }
+    ]
+  },
+  "excluded": {
+    "note": "NUNCA entram no pacote do time.",
+    "items": [
+      "settings pessoais: defaultMode bypassPermissions, additionalDirectories ~, model/advisorModel/theme/tui",
+      "MCPs pessoais com credencial: elementor-mcp, obsidian, n8n, Meta Ads, Fathom, Whimsical, Gmail, CODA",
+      "CCG inteiro (inclui override-refusal / guardrail-bypass - proibido redistribuir)",
+      "continuous-learning observer (trava no Windows #295 - enabled:false)",
+      "ECC summarizer e cost-tracker (ruido, dados descalibrados)",
+      "segredos: settings.local.json, .credentials.json, *.pem, *.key",
+      "logica pessoal de contas GitHub em rules/general.md",
+      "Vercel: plugin, skills e agents dela, e habilitar no settings - o time NAO usa Vercel"
+    ]
+  }
+}
