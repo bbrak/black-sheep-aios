@@ -8,7 +8,9 @@
 #   2. Copia o harness para ~/.claude (backup de tudo que for sobrescrito).
 #   3. Copia plugins/ para ~/.claude/plugins/bsaios-marketplace (plugin vendorizado bsaios-core).
 #   4. Gera ~/.claude/settings.json e ~/.claude/CLAUDE.md a partir dos templates (GateGuard ON;
-#      no macOS o hook automatico do RTK fica LIGADO).
+#      no macOS o hook automatico do RTK fica LIGADO). Se ja existirem, faz MERGE nao-destrutivo:
+#      settings.json = deep-merge (preserva permissoes/MCPs/statusline do usuario); CLAUDE.md =
+#      bloco gerenciado (so o bloco BSAIOS e trocado; sua identidade e customizacoes ficam intactas).
 #   5. Ferramentas externas (rtk, graphify, agent-browser): para cada uma AUSENTE, PERGUNTA e
 #      instala o comando do SO (fail-soft se recusar/falhar). rtk: brew install rtk (+ rtk init -g).
 #   6. Instala PyYAML (hook validate-agent-frontmatter) — pulado no --dry-run.
@@ -152,8 +154,8 @@ ARGS=(--claude-home "$CLAUDE_HOME" --platform mac)
 node "$RENDER" "$REPO_DIR/harness/settings.team.json" "$CLAUDE_HOME/settings.json" "${ARGS[@]}"
 [ -f "$CLAUDE_HOME/CLAUDE.md" ] && { mkdir -p "$BACKUP"; cp "$CLAUDE_HOME/CLAUDE.md" "$BACKUP/CLAUDE.md"; }
 node "$RENDER" "$REPO_DIR/harness/CLAUDE.md.template" "$CLAUDE_HOME/CLAUDE.md" "${ARGS[@]}"
-ok "settings.json (GateGuard ON, hook rtk LIGADO no macOS)"
-ok "CLAUDE.md"
+ok "settings.json (GateGuard ON, hook rtk LIGADO no macOS; merge nao-destrutivo se ja existia)"
+ok "CLAUDE.md (bloco gerenciado; identidade e customizacoes do usuario preservadas)"
 
 # ---------------------------------------------------------------- 5. ferramentas externas
 say ""
