@@ -1,22 +1,29 @@
 # Black Sheep AIOS - instalador Windows
-# Uso:  .\install.ps1 [-ClaudeHome <dir>] [-DryRun] [-Name "..."] [-Role "..."] [-Focus "..."]
+# Uso:  .\install.ps1 [-ClaudeHome <dir>] [-DryRun] [-Yes] [-SkipTools] [-Name "..."] [-Role "..."] [-Focus "..."]
 #
 # O que faz:
-#   1. Checa pre-requisitos (git, node, python, uv, claude) e ferramentas externas (rtk, graphify,
-#      agent-browser). NAO instala nada sozinho: imprime o comando certo do manifest.json.
+#   1. Checa pre-requisitos (git, node, python, uv, jq, claude). NAO os instala: imprime o
+#      comando certo do manifest.json (instalacao de linguagem/runtime fica a cargo do usuario).
 #   2. Copia o harness para ~/.claude (backup de tudo que for sobrescrito).
 #   3. Copia plugins/ para ~/.claude/plugins/bsaios-marketplace (plugin vendorizado bsaios-core)
 #      usando robocopy (caminhos longos).
 #   4. Gera ~/.claude/settings.json e ~/.claude/CLAUDE.md a partir dos templates (GateGuard ON;
 #      no Windows nativo o hook do RTK e REMOVIDO - RTK opera via @RTK.md no CLAUDE.md).
-#   5. Instala PyYAML (hook validate-agent-frontmatter) - pulado no -DryRun.
+#   5. Ferramentas externas (rtk, graphify, agent-browser): para cada uma AUSENTE, PERGUNTA e
+#      instala (fail-soft). rtk nao tem winget/scoop: baixa o .zip do release, extrai rtk.exe
+#      para ~/.local/bin, adiciona ao PATH do usuario e roda rtk init -g.
+#   6. Instala PyYAML (hook validate-agent-frontmatter) - pulado no -DryRun.
 #
-# -DryRun: exige -ClaudeHome, nao pergunta nada, nao instala pacote.
+# -DryRun:    exige -ClaudeHome, nao pergunta nada, nao instala pacote.
+# -Yes:       aceita automaticamente a instalacao das ferramentas externas (nao interativo).
+# -SkipTools: nao instala ferramentas externas (so avisa quais faltam).
 
 [CmdletBinding()]
 param(
     [string]$ClaudeHome = (Join-Path $env:USERPROFILE ".claude"),
     [switch]$DryRun,
+    [switch]$Yes,
+    [switch]$SkipTools,
     [string]$Name = "",
     [string]$Role = "",
     [string]$Focus = ""
@@ -30,6 +37,49 @@ function Say($m)  { Write-Host $m }
 function Ok($m)   { Write-Host "  [ok] $m" -ForegroundColor Green }
 function Warn($m) { Write-Host "  [!!] $m" -ForegroundColor Yellow }
 
+# Baixa o rtk.exe do release (nao ha winget/scoop), extrai para ~/.local/bin e ajusta o PATH.
+function Install-RtkWindows {
+    $dest = Join-Path $env:USERPROFILE ".local\bin"
+    New-Item -ItemType Directory -Force $dest | Out-Null
+    $zip = Join-Path $env:TEMP "rtk-win.zip"
+    $url = "https://github.com/rtk-ai/rtk/releases/latest/download/rtk-x86_64-pc-windows-msvc.zip"
+    Say "  baixando $url"
+    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+    Expand-Archive -Path $zip -DestinationPath $dest -Force
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($userPath -notmatch [regex]::Escape($dest)) {
+        [Environment]::SetEnvironmentVariable("Path", ($userPath.TrimEnd(';') + ";" + $dest), "User")
+        Ok "adicionado ao PATH do usuario: $dest (reabra o terminal p/ efeito permanente)"
+    }
+    $env:Path = "$env:Path;$dest"   # disponivel ja nesta sessao (p/ rtk init -g e verificacao)
+}
+
+# Invoke-ExtTool <id> <bin-p/-Get-Command> <scriptblock-install> [scriptblock-post]
+# Instala uma ferramenta externa AUSENTE: pergunta (a menos que -Yes), instala, verifica, roda o post.
+# Fail-soft: qualquer falha vira aviso e o instalador segue.
+function Invoke-ExtTool($id, $bin, [scriptblock]$Install, [scriptblock]$Post) {
+    if (Get-Command $bin -ErrorAction SilentlyContinue) { Ok "$id (ja instalado)"; return }
+    if ($SkipTools) { Warn "$id ausente (-SkipTools) - instale depois"; return }
+    if ($DryRun)    { Warn "$id ausente (dry-run: nao instala)"; return }
+    $ans = "y"
+    if (-not $Yes) { $ans = Read-Host "  $id ausente. Instalar agora? [Y/n]" }
+    if ($ans -match '^[nN]') { Warn "$id pulado (fail-soft) - instale depois"; return }
+    Say "  instalando $id..."
+    try {
+        & $Install
+        $env:Path = [Environment]::GetEnvironmentVariable("Path","User") + ";" + [Environment]::GetEnvironmentVariable("Path","Machine")
+        if (Get-Command $bin -ErrorAction SilentlyContinue) {
+            Ok "$id instalado"
+            if ($Post) { try { & $Post; Ok "$id post-install ok" } catch { Warn "$id post-install falhou (rode manualmente)" } }
+        } else {
+            Warn "$id: instalou mas '$bin' ainda nao esta no PATH - reabra o terminal"
+        }
+    } catch {
+        Warn "$id: instalacao falhou (fail-soft) - $($_.Exception.Message)"
+    }
+}
+
 Say ""
 Say "== Black Sheep AIOS - instalador Windows =="
 Say "   repo:        $RepoDir"
@@ -37,7 +87,7 @@ if ($DryRun) { Say "   CLAUDE_HOME: $ClaudeHome (DRY-RUN)" } else { Say "   CLAU
 Say ""
 
 # ---------------------------------------------------------------- 1. pre-requisitos
-Say "[1/5] Pre-requisitos"
+Say "[1/6] Pre-requisitos"
 $script:Missing = 0
 function Need($bin, $installHint) {
     if (Get-Command $bin -ErrorAction SilentlyContinue) { Ok $bin; return }
@@ -50,16 +100,13 @@ Need "python"        "winget install Python.Python.3.12"
 Need "uv"            "winget install astral-sh.uv"
 Need "jq"            "winget install jqlang.jq   (recomendado: team-os usa p/ descobrir agents de plugin)"
 Need "claude"        "irm https://claude.ai/install.ps1 | iex"
-Need "rtk"           "baixar rtk-x86_64-pc-windows-msvc.zip de github.com/rtk-ai/rtk/releases, extrair para o PATH, rodar: rtk init -g   (fail-soft: pode instalar depois)"
-Need "graphify"      "uv tool install graphifyy; graphify install; graphify claude install   (opcional)"
-Need "agent-browser" "npm install -g agent-browser; agent-browser install; npx skills add vercel-labs/agent-browser   (opcional)"
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "node e obrigatorio para o instalador." }
 if ($script:Missing -gt 0) { Warn "$($script:Missing) item(ns) ausente(s) - o instalador segue; instale-os depois (lista completa: install\manifest.json)." }
 
 # ---------------------------------------------------------------- 2. harness -> CLAUDE_HOME
 Say ""
-Say "[2/5] Harness -> $ClaudeHome"
+Say "[2/6] Harness -> $ClaudeHome"
 $Stamp  = Get-Date -Format "yyyyMMdd-HHmmss"
 $Backup = Join-Path $ClaudeHome "backups\bsaios-$Stamp"
 New-Item -ItemType Directory -Force $ClaudeHome | Out-Null
@@ -94,7 +141,7 @@ Get-ChildItem (Join-Path $RepoDir "harness\rules") -Filter *.md | ForEach-Object
 
 # ---------------------------------------------------------------- 3. plugin vendorizado (robocopy: caminhos longos)
 Say ""
-Say "[3/5] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
+Say "[3/6] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
 $Market = Join-Path $ClaudeHome "plugins\bsaios-marketplace"
 if (Test-Path $Market) {
     New-Item -ItemType Directory -Force (Join-Path $Backup "plugins") | Out-Null
@@ -109,7 +156,7 @@ Ok "marketplace por diretorio copiado ($SkillCount skills no plugin; os agents v
 
 # ---------------------------------------------------------------- 4. settings + CLAUDE.md
 Say ""
-Say "[4/5] Gerando settings.json e CLAUDE.md"
+Say "[4/6] Gerando settings.json e CLAUDE.md"
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($Name)) {
     $Name  = Read-Host "  Seu nome"
     $Role  = Read-Host "  Sua funcao"
@@ -139,9 +186,16 @@ if ($LASTEXITCODE -ne 0) { throw "render-settings falhou para CLAUDE.md" }
 Ok "settings.json (GateGuard ON, hook rtk REMOVIDO no Windows - modo @RTK.md)"
 Ok "CLAUDE.md"
 
-# ---------------------------------------------------------------- 5. extras
+# ---------------------------------------------------------------- 5. ferramentas externas
 Say ""
-Say "[5/5] Extras"
+Say "[5/6] Ferramentas externas (rtk, graphify, agent-browser)"
+Invoke-ExtTool "rtk" "rtk" { Install-RtkWindows } { rtk init -g }
+Invoke-ExtTool "graphify" "graphify" { uv tool install graphifyy; graphify install; graphify claude install }
+Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx skills add vercel-labs/agent-browser }
+
+# ---------------------------------------------------------------- 6. extras
+Say ""
+Say "[6/6] Extras"
 if ($DryRun) {
     Ok "dry-run: pulando PyYAML"
 } elseif (-not (Get-Command python -ErrorAction SilentlyContinue)) {

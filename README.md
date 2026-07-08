@@ -42,13 +42,19 @@ bash install/install.sh
 
 O instalador: checa pré-requisitos (imprime o comando de instalação de cada um que faltar),
 copia o harness para `~/.claude` (com backup do que existia), instala o plugin `bsaios-core`
-como marketplace local, e gera `settings.json` + `CLAUDE.md` perguntando seu nome/função.
-Ele **não** instala pré-requisitos sozinho — a lista completa com comandos por SO está em
-[`install/manifest.json`](install/manifest.json).
+como marketplace local, gera `settings.json` + `CLAUDE.md` perguntando seu nome/função, e por
+fim **pergunta se quer instalar as ferramentas externas** que faltarem (RTK, Graphify,
+agent-browser) — instalando o comando certo do seu SO na hora.
 
-Pré-requisitos: Git, Node LTS, Python 3, uv, jq, Claude Code. Ferramentas externas
-(recomendadas): RTK, Graphify, agent-browser — comandos exatos no manifest e impressos pelo
-instalador.
+Pré-requisitos (Git, Node LTS, Python 3, uv, jq, Claude Code): o instalador **não** os instala
+sozinho — imprime o comando por SO (lista completa em
+[`install/manifest.json`](install/manifest.json)).
+
+Ferramentas externas (RTK, Graphify, agent-browser): para cada uma ausente o instalador
+**pergunta `[Y/n]` e instala** por SO (no Mac, `brew install rtk`; no Windows, baixa o `.zip`
+do release do RTK e ajusta o PATH). Flags: `--yes`/`-Yes` aceita tudo sem perguntar (bom para
+setup não-interativo); `--skip-tools`/`-SkipTools` pula essa etapa. Se você recusar ou a
+instalação falhar, segue em fail-soft — dá pra instalar depois.
 
 ### Instalação assistida por IA
 

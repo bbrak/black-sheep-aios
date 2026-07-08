@@ -115,14 +115,22 @@
         "windows": "parcial (binario funciona; hook automatico so no WSL; no Windows nativo usa modo CLAUDE.md via @RTK.md)"
       },
       "install": {
-        "windows": "Baixar rtk-x86_64-pc-windows-msvc.zip de https://github.com/rtk-ai/rtk/releases, extrair rtk.exe para uma pasta no PATH, depois: rtk init -g",
-        "mac": "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && rtk init -g"
+        "windows": "Sem winget/scoop: o install.ps1 baixa rtk-x86_64-pc-windows-msvc.zip de https://github.com/rtk-ai/rtk/releases/latest, extrai rtk.exe para ~/.local/bin e adiciona ao PATH do usuario. Manual: cargo install --git https://github.com/rtk-ai/rtk",
+        "mac": "brew install rtk"
+      },
+      "installFallback": {
+        "mac": "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh   (se nao houver Homebrew; instala em ~/.local/bin)"
+      },
+      "postInstall": {
+        "windows": "rtk init -g",
+        "mac": "rtk init -g"
       },
       "check": {
         "windows": "rtk --version",
         "mac": "rtk --version"
       },
-      "failSoft": true
+      "failSoft": true,
+      "autoInstall": "Os instaladores (fase 5) detectam a ausencia, PERGUNTAM [Y/n] e instalam (--yes aceita sem perguntar; --skip-tools pula). So cai no fail-soft se o usuario recusar ou a instalacao falhar. Colisao de nome: se 'rtk gain' falhar, veio o pacote errado (Rust Type Kit) - use o cargo/brew oficial."
     },
     {
       "id": "graphify",
