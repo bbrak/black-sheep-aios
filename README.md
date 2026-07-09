@@ -56,11 +56,6 @@ linguagem simples.
 | **Rules (8)** | general, coding-standards, security, python, javascript, git-workflow-coaching, failure-prevention, lazy-senior (regras contra complicar demais o código, sempre ativas) | Oito regras de comportamento que o assistente sempre segue |
 | **Config** | `settings.json` gerado por sistema operacional (GateGuard ligado, permissões de edição facilitadas, lista de comandos perigosos bloqueados), `CLAUDE.md` global com seu nome/função, statusline | Os arquivos de configuração que deixam tudo pronto e com sua identidade preenchida |
 
-**O que este pacote NÃO tem (de propósito):** plugin da Vercel, ferramentas externas que exigem
-suas credenciais pessoais (MCPs pessoais), o "observador" de aprendizado contínuo (trava no
-Windows), e o resumidor/contador de custo do ECC (informação que o time considerou ruído). Em
-relação às pontes externas (MCPs): só existem duas, `context7` e `chrome-devtools`, e são
-opcionais.
 
 ## Instalação
 
