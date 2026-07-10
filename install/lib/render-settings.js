@@ -36,17 +36,35 @@ let claudeHome = opt('--claude-home', '');
 if (!claudeHome) fail('--claude-home e obrigatorio');
 claudeHome = path.resolve(claudeHome).replace(/\\/g, '/');
 
-const tokens = {
-  '{{CLAUDE_HOME}}': claudeHome,
-  '{{PYTHON}}': platform === 'windows' ? 'python' : 'python3',
-  '{{USER_NAME}}': opt('--name', '<SEU NOME>'),
-  '{{USER_ROLE}}': opt('--role', '<SUA FUNCAO>'),
-  '{{USER_FOCUS}}': opt('--focus', '<ex.: automacoes com IA, marketing, desenvolvimento web>')
+// Identidade: flags tem precedencia; senao o profile.json cacheado (.bsaios/profile.json), para
+// re-renderizar o CLAUDE.md num update sem re-perguntar; senao vazio (o guarda abaixo recusa).
+const profilePath = opt('--profile', '');
+let profile = {};
+if (profilePath) { try { profile = JSON.parse(fs.readFileSync(profilePath, 'utf-8')); } catch { profile = {}; } }
+const identity = {
+  '{{USER_NAME}}': opt('--name', profile.name || ''),
+  '{{USER_ROLE}}': opt('--role', profile.role || ''),
+  '{{USER_FOCUS}}': opt('--focus', profile.focus || '')
 };
 
 let text;
 try { text = fs.readFileSync(templatePath, 'utf-8'); }
 catch (e) { fail('nao consegui ler o template: ' + templatePath); }
+
+// Mata o bug do <SEU NOME>: se o template referencia identidade, ela precisa existir e nao ser um
+// placeholder <...>. Sem isso, RECUSA escrever (nunca renderiza um CLAUDE.md com identidade quebrada).
+const isPlaceholder = v => !String(v).trim() || /<[^>]*>/.test(String(v));
+for (const [tok, val] of Object.entries(identity)) {
+  if (text.includes(tok) && isPlaceholder(val)) {
+    fail('identidade ausente ou placeholder para ' + tok + ' — recuso escrever ' + path.basename(outPath) +
+      '. Forneca --name/--role/--focus ou um profile.json valido em ~/.claude/.bsaios/.');
+  }
+}
+
+const tokens = Object.assign({
+  '{{CLAUDE_HOME}}': claudeHome,
+  '{{PYTHON}}': platform === 'windows' ? 'python' : 'python3'
+}, identity);
 
 for (const [k, v] of Object.entries(tokens)) text = text.split(k).join(v);
 

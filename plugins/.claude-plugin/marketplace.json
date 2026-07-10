@@ -10,7 +10,7 @@
     {
       "name": "bsaios-core",
       "source": "./bsaios-core",
-      "description": "49 skills curadas (destiladas do ECC 2.0.0-rc.1, com gold merge) + hooks do GateGuard. Os 21 agents ECC vivem no harness (escopo usuario, enrolados p/ team-os). Vendorizado - nunca instalar o ECC do marketplace upstream.",
+      "description": "53 skills curadas (49 destiladas do ECC 2.0.0-rc.1 com gold merge + 4 do Superpowers) + hooks do GateGuard. Os 21 agents ECC enrolados vivem no harness (escopo usuario, p/ team-os), de um total de 44 agents. Vendorizado - nunca instalar o ECC do marketplace upstream.",
       "version": "1.0.0",
       "license": "MIT",
       "category": "workflow",

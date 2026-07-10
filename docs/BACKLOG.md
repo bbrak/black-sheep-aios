@@ -11,8 +11,8 @@
 |---|---|---|---|---|
 | [BSA-1](#bsa-1--sem-rede-de-segurança-automatizada-ci--testes) | Sem rede de segurança automatizada (CI/testes) | Alta | Baixo/Médio | Aberto |
 | [BSA-2](#bsa-2--paridade-windowsmacos-mantida-na-mão) | Paridade Windows↔macOS mantida na mão | Alta | Médio | Aberto |
-| [BSA-3](#bsa-3--drift-de-contagemversão-em-múltiplos-lugares) | Drift de contagem/versão em múltiplos lugares | Média | Baixo | Aberto |
-| [BSA-4](#bsa-4--histórico-só-em-prosa-sem-changelog) | Histórico só em prosa, sem CHANGELOG | Média | Baixo | Aberto |
+| [BSA-3](#bsa-3--drift-de-contagemversão-em-múltiplos-lugares) | Drift de contagem/versão em múltiplos lugares | Média | Baixo | Resolvido (Fase 0) |
+| [BSA-4](#bsa-4--histórico-só-em-prosa-sem-changelog) | Histórico só em prosa, sem CHANGELOG | Média | Baixo | Resolvido (Fase 0) |
 | [BSA-5](#bsa-5--polimentos-rápidos) | Polimentos rápidos (URL do repo, LICENSE, uninstall) | Baixa | Baixo | Aberto |
 
 ---
@@ -106,7 +106,9 @@ divergências já documentadas como intencionais (ex.: binário Python).
 
 ## BSA-3 — Drift de contagem/versão em múltiplos lugares
 
-**Prioridade:** Média · **Esforço:** Baixo · **Status:** Aberto
+**Prioridade:** Média · **Esforço:** Baixo · **Status:** Resolvido (Fase 0 — `install/manifest.json`
+é a fonte única; `install/lib/sync-manifest.js` sincroniza `plugin.json`/`marketplace.json` e falha o
+CI em drift; descrições corrigidas 49→53 skills)
 
 ### Por que importa
 
@@ -154,7 +156,8 @@ Black Sheep AIOS".
 
 ## BSA-4 — Histórico só em prosa, sem CHANGELOG
 
-**Prioridade:** Média · **Esforço:** Baixo · **Status:** Aberto
+**Prioridade:** Média · **Esforço:** Baixo · **Status:** Resolvido (Fase 0 — `CHANGELOG.md` no formato
+Keep a Changelog, com "UPDATE 001/002" migrados de `install/manifest.json`)
 
 ### Por que importa
 

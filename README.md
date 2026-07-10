@@ -27,7 +27,7 @@ só `context7` e `chrome-devtools`, opcionais.
 ### Windows
 
 ```powershell
-git clone <URL-DO-REPO> black-sheep-aios
+git clone https://github.com/bbrak/black-sheep-aios.git black-sheep-aios
 cd black-sheep-aios
 powershell -ExecutionPolicy Bypass -File install\install.ps1
 ```
@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File install\install.ps1
 ### macOS
 
 ```bash
-git clone <URL-DO-REPO> black-sheep-aios
+git clone https://github.com/bbrak/black-sheep-aios.git black-sheep-aios
 cd black-sheep-aios
 bash install/install.sh
 ```
@@ -55,6 +55,18 @@ instalador.
 Não quer fazer sozinho? Abra o Claude (Desktop ou claude.ai), cole o conteúdo de
 [`assist/INSTALL-ASSIST-PROMPT.md`](assist/INSTALL-ASSIST-PROMPT.md) e siga a conversa.
 A IA te guia passo a passo, um comando por vez, com verificação em cada etapa.
+
+### Atualizações
+
+Depois de instalado, o harness sabe a própria versão. Quando sai novidade, o início da sessão mostra
+uma linha *"Black Sheep AIOS vX disponível — rode /bsaios-update"*. No chat:
+
+- **`/bsaios-update`** — mostra o que mudou, pergunta **sim/não**, aplica. Nunca toca no seu pessoal
+  (`settings.local.json`, credenciais, `model`/`theme`); aposenta arquivos que saíram do repo; é
+  transacional (em falha, restaura o backup e mantém a versão antiga). Aplica na próxima sessão.
+- **`/bsaios-rollback`** — desfaz para o backup anterior (mantém os últimos 5), exceto segredos.
+
+Detalhes, o modelo canário→stable e o cutover para o marketplace git: [`docs/harness-updates.md`](docs/harness-updates.md).
 
 ### Verificação pós-instalação
 

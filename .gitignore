@@ -12,6 +12,9 @@ __pycache__/
 suggest-allowlist.txt
 *.bak-*
 
+# memoria local de agentes (nao e produto)
+.claude/
+
 # segredos — nunca commitá-los
 settings.local.json
 .credentials.json

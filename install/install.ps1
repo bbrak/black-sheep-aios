@@ -10,8 +10,11 @@
 #   4. Gera ~/.claude/settings.json e ~/.claude/CLAUDE.md a partir dos templates (GateGuard ON;
 #      no Windows nativo o hook do RTK e REMOVIDO - RTK opera via @RTK.md no CLAUDE.md).
 #   5. Instala PyYAML (hook validate-agent-frontmatter) - pulado no -DryRun.
+#   6. Grava ~/.claude/.bsaios/{version,profile,manifest.installed}.json (ancora de versao +
+#      identidade cacheada + inventario para prune) - ULTIMO passo bem-sucedido.
 #
-# -DryRun: exige -ClaudeHome, nao pergunta nada, nao instala pacote.
+# -DryRun: exige -ClaudeHome, nao pergunta nada, nao instala pacote
+#          (usa uma identidade de teste para o render nao recusar por placeholder).
 
 [CmdletBinding()]
 param(
@@ -37,7 +40,7 @@ if ($DryRun) { Say "   CLAUDE_HOME: $ClaudeHome (DRY-RUN)" } else { Say "   CLAU
 Say ""
 
 # ---------------------------------------------------------------- 1. pre-requisitos
-Say "[1/5] Pre-requisitos"
+Say "[1/6] Pre-requisitos"
 $script:Missing = 0
 function Need($bin, $installHint) {
     if (Get-Command $bin -ErrorAction SilentlyContinue) { Ok $bin; return }
@@ -59,7 +62,7 @@ if ($script:Missing -gt 0) { Warn "$($script:Missing) item(ns) ausente(s) - o in
 
 # ---------------------------------------------------------------- 2. harness -> CLAUDE_HOME
 Say ""
-Say "[2/5] Harness -> $ClaudeHome"
+Say "[2/6] Harness -> $ClaudeHome"
 $Stamp  = Get-Date -Format "yyyyMMdd-HHmmss"
 $Backup = Join-Path $ClaudeHome "backups\bsaios-$Stamp"
 New-Item -ItemType Directory -Force $ClaudeHome | Out-Null
@@ -91,10 +94,24 @@ BackupAndCopy (Join-Path $RepoDir "harness\hooks\team")                         
 Get-ChildItem (Join-Path $RepoDir "harness\rules") -Filter *.md | ForEach-Object {
     BackupAndCopy $_.FullName ("rules\" + $_.Name)
 }
+Get-ChildItem (Join-Path $RepoDir "harness\commands") -Filter *.md | ForEach-Object {
+    BackupAndCopy $_.FullName ("commands\" + $_.Name)
+}
+
+# updater fora da sessao (bundle estavel) + wrappers de recuperacao -> ~\.claude\.bsaios\
+$UpdaterDir = Join-Path $ClaudeHome ".bsaios\updater"
+New-Item -ItemType Directory -Force $UpdaterDir | Out-Null
+Remove-Item (Join-Path $UpdaterDir "lib") -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $UpdaterDir "migrations") -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $RepoDir "install\lib")           (Join-Path $UpdaterDir "lib") -Recurse -Force
+Copy-Item (Join-Path $RepoDir "install\migrations")    (Join-Path $UpdaterDir "migrations") -Recurse -Force
+Copy-Item (Join-Path $RepoDir "install\manifest.json") (Join-Path $UpdaterDir "manifest.json") -Force
+Copy-Item (Join-Path $RepoDir "harness\wrappers\*")    (Join-Path $ClaudeHome ".bsaios") -Force
+Ok "updater + wrappers (.bsaios\updater; /bsaios-update no chat)"
 
 # ---------------------------------------------------------------- 3. plugin vendorizado (robocopy: caminhos longos)
 Say ""
-Say "[3/5] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
+Say "[3/6] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
 $Market = Join-Path $ClaudeHome "plugins\bsaios-marketplace"
 if (Test-Path $Market) {
     New-Item -ItemType Directory -Force (Join-Path $Backup "plugins") | Out-Null
@@ -109,14 +126,16 @@ Ok "marketplace por diretorio copiado ($SkillCount skills no plugin; os agents v
 
 # ---------------------------------------------------------------- 4. settings + CLAUDE.md
 Say ""
-Say "[4/5] Gerando settings.json e CLAUDE.md"
+Say "[4/6] Gerando settings.json e CLAUDE.md"
+if ($DryRun -and [string]::IsNullOrWhiteSpace($Name)) { $Name = "Dry Run"; $Role = "CI"; $Focus = "parity-check" }
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($Name)) {
     $Name  = Read-Host "  Seu nome"
     $Role  = Read-Host "  Sua funcao"
     $Focus = Read-Host "  Areas de foco"
 }
 $Render  = Join-Path $ScriptDir "lib\render-settings.js"
-$RenderArgs = @("--claude-home", $ClaudeHome, "--platform", "windows")
+$ProfilePath = Join-Path $ClaudeHome ".bsaios\profile.json"
+$RenderArgs = @("--claude-home", $ClaudeHome, "--platform", "windows", "--profile", $ProfilePath)
 if ($Name)  { $RenderArgs += @("--name",  $Name) }
 if ($Role)  { $RenderArgs += @("--role",  $Role) }
 if ($Focus) { $RenderArgs += @("--focus", $Focus) }
@@ -141,7 +160,7 @@ Ok "CLAUDE.md"
 
 # ---------------------------------------------------------------- 5. extras
 Say ""
-Say "[5/5] Extras"
+Say "[5/6] Extras"
 if ($DryRun) {
     Ok "dry-run: pulando PyYAML"
 } elseif (-not (Get-Command python -ErrorAction SilentlyContinue)) {
@@ -156,6 +175,19 @@ if ($DryRun) {
         else { Warn "nao consegui instalar PyYAML - o hook validate-agent-frontmatter fica inerte ate: python -m pip install pyyaml" }
     }
 }
+
+# ---------------------------------------------------------------- 6. estado (.bsaios) - ULTIMO passo
+Say ""
+Say "[6/6] Estado -> $ClaudeHome\.bsaios"
+$StateArgs = @("--claude-home", $ClaudeHome, "--platform", "windows", "--repo", $RepoDir, "--manifest", (Join-Path $RepoDir "install\manifest.json"))
+if ($Name)  { $StateArgs += @("--name",  $Name) }
+if ($Role)  { $StateArgs += @("--role",  $Role) }
+if ($Focus) { $StateArgs += @("--focus", $Focus) }
+& node (Join-Path $ScriptDir "lib\bsaios-state.js") @StateArgs
+if ($LASTEXITCODE -ne 0) { throw "bsaios-state falhou ao gravar o estado" }
+Ok "version.json + profile.json + manifest.installed.json (carimbo por ultimo)"
+& node (Join-Path $ScriptDir "lib\verify-harness.js") --claude-home $ClaudeHome
+if ($LASTEXITCODE -ne 0) { Warn "health check reportou problemas (veja acima) - o install foi concluido, mas verifique" }
 
 Say ""
 Say "== Pronto =="
