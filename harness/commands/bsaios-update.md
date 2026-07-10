@@ -8,7 +8,8 @@ script Node **fora da sessao** — voce so orquestra e faz a pergunta. **Nao edi
 
 1. **Preview (nada e aplicado).** Rode:
    ```bash
-   node ~/.claude/.bsaios/updater/lib/bsaios-update.js --claude-home ~/.claude --check
+   H="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+   node "$H/.bsaios/updater/lib/bsaios-update.js" --claude-home "$H" --check
    ```
    Mostra a versao instalada, a ultima disponivel e o delta do CHANGELOG. Se aparecer
    **"Ja esta atualizado"**, informe isso ao usuario e **pare** — nao ha o que fazer.
@@ -17,7 +18,8 @@ script Node **fora da sessao** — voce so orquestra e faz a pergunta. **Nao edi
 
 3. **So com o "sim" explicito**, aplique:
    ```bash
-   node ~/.claude/.bsaios/updater/lib/bsaios-update.js --claude-home ~/.claude --yes
+   H="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+   node "$H/.bsaios/updater/lib/bsaios-update.js" --claude-home "$H" --yes
    ```
    O updater e **transacional**: em qualquer falha restaura o backup e mantem a versao antiga. Ele
    **nunca** toca no seu pessoal (`settings.local.json`, credenciais, `model`/`theme`) e aposenta
