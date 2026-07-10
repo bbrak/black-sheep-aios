@@ -42,7 +42,8 @@ echo "== 3) COLABORADOR recebe o BANNER (VERSION do stable via seam local) =="
 G show stable:VERSION > "$ROOT/remote-VERSION"
 # a sessao anterior ja teria populado o cache (refresh destacado); aqui fazemos o refresh sincrono:
 BSAIOS_VERSION_URL="$ROOT/remote-VERSION" node "$TEAM/hooks/team/update-check.js" --refresh "$TEAM"
-BANNER=$(CLAUDE_PROJECT_DIR="$ROOT" node "$TEAM/hooks/team/session-context.js" </dev/null)
+# simula a sessao REAL do colaborador: sem CI (o banner e silenciado sob CI por design, veja update-check.js).
+BANNER=$(env -u CI CLAUDE_PROJECT_DIR="$ROOT" node "$TEAM/hooks/team/session-context.js" </dev/null)
 echo "$BANNER" | grep -q "v1.1.0 disponivel" && assert "banner anuncia v1.1.0" 1 || assert "banner anuncia v1.1.0" 0
 
 echo "== 4) COLABORADOR roda /bsaios-update (git clone/pull REAL do remote local) =="
