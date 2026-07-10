@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.1.0] — 2026-07-10
+
 ### Adicionado
 - **Âncora de versão:** os instaladores gravam `~/.claude/.bsaios/version.json`
   `{product_version, git_sha, platform, installed_at}` como último passo bem-sucedido — o harness
