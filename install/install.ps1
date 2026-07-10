@@ -76,10 +76,10 @@ function Invoke-ExtTool($id, $bin, [scriptblock]$Install, [scriptblock]$Post) {
             Ok "$id instalado"
             if ($Post) { try { & $Post; Ok "$id post-install ok" } catch { Warn "$id post-install falhou (rode manualmente)" } }
         } else {
-            Warn "$id: instalou mas '$bin' ainda nao esta no PATH - reabra o terminal"
+            Warn "${id}: instalou mas '$bin' ainda nao esta no PATH - reabra o terminal"
         }
     } catch {
-        Warn "$id: instalacao falhou (fail-soft) - $($_.Exception.Message)"
+        Warn "${id}: instalacao falhou (fail-soft) - $($_.Exception.Message)"
     }
 }
 
