@@ -33,6 +33,11 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 - **`/bsaios-rollback`** + rotação de backups (mantém os últimos 5), excluindo segredos.
 - **CI** ([`.github/workflows/harness-ci.yml`](.github/workflows/harness-ci.yml)) + teste de regressão
   do ciclo install→update→rollback ([`install/test/cycle.sh`](install/test/cycle.sh)) — cobre BSA-1.
+- **Frescor de docs automático:** [`release.js`](install/lib/release.js) (release de 1 comando: bump +
+  promove o CHANGELOG + propaga versão/contagem + commit) e o gate [`check-release.js`](install/lib/check-release.js)
+  no CI — bloqueia o merge se a versão subir sem seção no CHANGELOG, se as contagens do README mentirem,
+  ou se conteúdo do harness mudar sem registro no CHANGELOG. Regressão em
+  [`install/test/release-guard.sh`](install/test/release-guard.sh).
 
 ### Corrigido
 - Descrições de `plugin.json` e `marketplace.json`: **49 → 53 skills**; a frase dos "21 agents ECC"
