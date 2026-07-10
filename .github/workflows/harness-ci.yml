@@ -1,0 +1,51 @@
+name: harness-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  drift-and-cycle:
+    name: Drift + ciclo install/update/rollback
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guarda de drift (versao unica + contagens 49-vs-53)
+        run: node install/lib/sync-manifest.js
+      - name: Ciclo install -> update -> rollback (pessoal sobrevive, orfaos podados, transacional)
+        run: bash install/test/cycle.sh
+      - name: E2E publicar skill -> banner -> /bsaios-update (git clone/pull real, remote local)
+        run: bash install/test/e2e-publish.sh
+
+  install-macos:
+    name: install.sh --dry-run + verify (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: dry-run + health check
+        run: |
+          TMP="$(mktemp -d)"
+          bash install/install.sh --claude-home "$TMP" --dry-run
+          node install/lib/verify-harness.js --claude-home "$TMP"
+
+  install-windows:
+    name: install.ps1 -DryRun + verify (Windows — paridade)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: dry-run + health check
+        shell: pwsh
+        run: |
+          $TMP = Join-Path $env:RUNNER_TEMP "claude-test"
+          pwsh install/install.ps1 -DryRun -ClaudeHome $TMP
+          node install/lib/verify-harness.js --claude-home $TMP

@@ -14,8 +14,11 @@
 #   5. Ferramentas externas (rtk, graphify, agent-browser): para cada uma AUSENTE, PERGUNTA e
 #      instala o comando do SO (fail-soft se recusar/falhar). rtk: brew install rtk (+ rtk init -g).
 #   6. Instala PyYAML (hook validate-agent-frontmatter) — pulado no --dry-run.
+#   7. Grava ~/.claude/.bsaios/{version,profile,manifest.installed}.json (ancora de versao +
+#      identidade cacheada + inventario para prune) — ULTIMO passo bem-sucedido.
 #
-# --dry-run:    exige --claude-home, nao pergunta nada, nao instala pacote, nao roda rtk init.
+# --dry-run:    exige --claude-home, nao pergunta nada, nao instala pacote, nao roda rtk init
+#               (usa uma identidade de teste para o render nao recusar por placeholder).
 # --yes:        aceita automaticamente a instalacao das ferramentas externas (nao interativo).
 # --skip-tools: nao instala ferramentas externas (so avisa quais faltam).
 set -euo pipefail
@@ -80,7 +83,7 @@ say "   CLAUDE_HOME: $CLAUDE_HOME $([ $DRY_RUN -eq 1 ] && echo '(DRY-RUN)')"
 say ""
 
 # ---------------------------------------------------------------- 1. pre-requisitos
-say "[1/6] Pre-requisitos"
+say "[1/7] Pre-requisitos"
 MISSING=0
 need() { # need <id> <cmd de teste> <como instalar>
   if bash -c "$2" >/dev/null 2>&1; then ok "$1"
@@ -99,7 +102,7 @@ command -v node >/dev/null 2>&1 || { echo "ERRO: node e obrigatorio para o insta
 
 # ---------------------------------------------------------------- 2. harness -> CLAUDE_HOME
 say ""
-say "[2/6] Harness -> $CLAUDE_HOME"
+say "[2/7] Harness -> $CLAUDE_HOME"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$CLAUDE_HOME/backups/bsaios-$STAMP"
 mkdir -p "$CLAUDE_HOME"
@@ -125,11 +128,22 @@ backup_and_copy "$REPO_DIR/harness/hooks/git-moment-advisor.sh"        "hooks/gi
 backup_and_copy "$REPO_DIR/harness/hooks/validate-agent-frontmatter.py" "hooks/validate-agent-frontmatter.py"
 backup_and_copy "$REPO_DIR/harness/hooks/team"             "hooks/team"
 for f in "$REPO_DIR/harness/rules/"*.md; do backup_and_copy "$f" "rules/$(basename "$f")"; done
+for f in "$REPO_DIR/harness/commands/"*.md; do backup_and_copy "$f" "commands/$(basename "$f")"; done
 chmod +x "$CLAUDE_HOME/hooks/git-moment-advisor.sh" 2>/dev/null || true
+
+# updater fora da sessao (bundle estavel) + wrappers de recuperacao -> ~/.claude/.bsaios/
+mkdir -p "$CLAUDE_HOME/.bsaios/updater"
+rm -rf "$CLAUDE_HOME/.bsaios/updater/lib" "$CLAUDE_HOME/.bsaios/updater/migrations"
+cp -R "$REPO_DIR/install/lib"        "$CLAUDE_HOME/.bsaios/updater/lib"
+cp -R "$REPO_DIR/install/migrations" "$CLAUDE_HOME/.bsaios/updater/migrations"
+cp    "$REPO_DIR/install/manifest.json" "$CLAUDE_HOME/.bsaios/updater/manifest.json"
+cp    "$REPO_DIR/harness/wrappers/"* "$CLAUDE_HOME/.bsaios/" 2>/dev/null || true
+chmod +x "$CLAUDE_HOME/.bsaios/"*.command 2>/dev/null || true
+ok "updater + wrappers (.bsaios/updater; /bsaios-update no chat)"
 
 # ---------------------------------------------------------------- 3. plugin vendorizado
 say ""
-say "[3/6] Plugin bsaios-core -> $CLAUDE_HOME/plugins/bsaios-marketplace"
+say "[3/7] Plugin bsaios-core -> $CLAUDE_HOME/plugins/bsaios-marketplace"
 MARKET="$CLAUDE_HOME/plugins/bsaios-marketplace"
 if [ -e "$MARKET" ]; then mkdir -p "$BACKUP/plugins"; cp -R "$MARKET" "$BACKUP/plugins/bsaios-marketplace"; rm -rf "$MARKET"; fi
 mkdir -p "$MARKET"
@@ -138,14 +152,15 @@ ok "marketplace por diretorio copiado ($(ls "$MARKET/bsaios-core/skills" | wc -l
 
 # ---------------------------------------------------------------- 4. settings + CLAUDE.md
 say ""
-say "[4/6] Gerando settings.json e CLAUDE.md"
+say "[4/7] Gerando settings.json e CLAUDE.md"
+if [ $DRY_RUN -eq 1 ] && [ -z "$NAME" ]; then NAME="Dry Run"; ROLE="CI"; FOCUS="parity-check"; fi
 if [ $DRY_RUN -eq 0 ] && [ -z "$NAME" ]; then
   read -r -p "  Seu nome: " NAME || NAME=""
   read -r -p "  Sua funcao: " ROLE || ROLE=""
   read -r -p "  Areas de foco: " FOCUS || FOCUS=""
 fi
 RENDER="$SCRIPT_DIR/lib/render-settings.js"
-ARGS=(--claude-home "$CLAUDE_HOME" --platform mac)
+ARGS=(--claude-home "$CLAUDE_HOME" --platform mac --profile "$CLAUDE_HOME/.bsaios/profile.json")
 [ -n "$NAME"  ] && ARGS+=(--name  "$NAME")
 [ -n "$ROLE"  ] && ARGS+=(--role  "$ROLE")
 [ -n "$FOCUS" ] && ARGS+=(--focus "$FOCUS")
@@ -159,7 +174,7 @@ ok "CLAUDE.md (bloco gerenciado; identidade e customizacoes do usuario preservad
 
 # ---------------------------------------------------------------- 5. ferramentas externas
 say ""
-say "[5/6] Ferramentas externas (rtk, graphify, agent-browser)"
+say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
 # rtk no macOS: metodo oficial recomendado e o Homebrew; cai para o instalador curl|sh se nao houver brew.
 ext_tool "rtk" "rtk --version" \
   "brew install rtk || curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh" \
@@ -171,7 +186,7 @@ ext_tool "agent-browser" "agent-browser --version" \
 
 # ---------------------------------------------------------------- 6. extras
 say ""
-say "[6/6] Extras"
+say "[6/7] Extras"
 if [ $DRY_RUN -eq 1 ]; then
   ok "dry-run: pulando PyYAML"
 else
@@ -183,6 +198,17 @@ else
     python3 -c "import yaml" >/dev/null 2>&1 && ok "PyYAML instalado"
   fi
 fi
+
+# ---------------------------------------------------------------- 7. estado (.bsaios) — ULTIMO passo
+say ""
+say "[7/7] Estado -> $CLAUDE_HOME/.bsaios"
+STATE_ARGS=(--claude-home "$CLAUDE_HOME" --platform mac --repo "$REPO_DIR" --manifest "$REPO_DIR/install/manifest.json")
+[ -n "$NAME" ]  && STATE_ARGS+=(--name  "$NAME")
+[ -n "$ROLE" ]  && STATE_ARGS+=(--role  "$ROLE")
+[ -n "$FOCUS" ] && STATE_ARGS+=(--focus "$FOCUS")
+node "$SCRIPT_DIR/lib/bsaios-state.js" "${STATE_ARGS[@]}"
+ok "version.json + profile.json + manifest.installed.json (carimbo por ultimo)"
+node "$SCRIPT_DIR/lib/verify-harness.js" --claude-home "$CLAUDE_HOME" || warn "health check reportou problemas (veja acima) — o install foi concluido, mas verifique"
 
 say ""
 say "== Pronto =="

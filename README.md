@@ -174,6 +174,18 @@ Esse assistente foi escrito para linguagem simples, pergunta primeiro se você �
 macOS, resolve um problema de cada vez (nunca uma lista de 10 possíveis causas ao mesmo tempo), e
 nunca vai pedir para você colar senhas ou tokens no chat.
 
+### Atualizações
+
+Depois de instalado, o harness sabe a própria versão. Quando sai novidade, o início da sessão mostra
+uma linha *"Black Sheep AIOS vX disponível — rode /bsaios-update"*. No chat:
+
+- **`/bsaios-update`** — mostra o que mudou, pergunta **sim/não**, aplica. Nunca toca no seu pessoal
+  (`settings.local.json`, credenciais, `model`/`theme`); aposenta arquivos que saíram do repo; é
+  transacional (em falha, restaura o backup e mantém a versão antiga). Aplica na próxima sessão.
+- **`/bsaios-rollback`** — desfaz para o backup anterior (mantém os últimos 5), exceto segredos.
+
+Detalhes, o modelo canário→stable e o cutover para o marketplace git: [`docs/harness-updates.md`](docs/harness-updates.md).
+
 ### Verificação pós-instalação
 
 Depois de instalar, rode estes dois comandos para conferir que tudo ficou no lugar:

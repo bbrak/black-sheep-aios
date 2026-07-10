@@ -13,8 +13,11 @@
 #      instala (fail-soft). rtk nao tem winget/scoop: baixa o .zip do release, extrai rtk.exe
 #      para ~/.local/bin, adiciona ao PATH do usuario e roda rtk init -g.
 #   6. Instala PyYAML (hook validate-agent-frontmatter) - pulado no -DryRun.
+#   7. Grava ~/.claude/.bsaios/{version,profile,manifest.installed}.json (ancora de versao +
+#      identidade cacheada + inventario para prune) - ULTIMO passo bem-sucedido.
 #
-# -DryRun:    exige -ClaudeHome, nao pergunta nada, nao instala pacote.
+# -DryRun:    exige -ClaudeHome, nao pergunta nada, nao instala pacote
+#             (usa uma identidade de teste para o render nao recusar por placeholder).
 # -Yes:       aceita automaticamente a instalacao das ferramentas externas (nao interativo).
 # -SkipTools: nao instala ferramentas externas (so avisa quais faltam).
 
@@ -73,10 +76,10 @@ function Invoke-ExtTool($id, $bin, [scriptblock]$Install, [scriptblock]$Post) {
             Ok "$id instalado"
             if ($Post) { try { & $Post; Ok "$id post-install ok" } catch { Warn "$id post-install falhou (rode manualmente)" } }
         } else {
-            Warn "$id: instalou mas '$bin' ainda nao esta no PATH - reabra o terminal"
+            Warn "${id}: instalou mas '$bin' ainda nao esta no PATH - reabra o terminal"
         }
     } catch {
-        Warn "$id: instalacao falhou (fail-soft) - $($_.Exception.Message)"
+        Warn "${id}: instalacao falhou (fail-soft) - $($_.Exception.Message)"
     }
 }
 
@@ -87,7 +90,7 @@ if ($DryRun) { Say "   CLAUDE_HOME: $ClaudeHome (DRY-RUN)" } else { Say "   CLAU
 Say ""
 
 # ---------------------------------------------------------------- 1. pre-requisitos
-Say "[1/6] Pre-requisitos"
+Say "[1/7] Pre-requisitos"
 $script:Missing = 0
 function Need($bin, $installHint) {
     if (Get-Command $bin -ErrorAction SilentlyContinue) { Ok $bin; return }
@@ -106,7 +109,7 @@ if ($script:Missing -gt 0) { Warn "$($script:Missing) item(ns) ausente(s) - o in
 
 # ---------------------------------------------------------------- 2. harness -> CLAUDE_HOME
 Say ""
-Say "[2/6] Harness -> $ClaudeHome"
+Say "[2/7] Harness -> $ClaudeHome"
 $Stamp  = Get-Date -Format "yyyyMMdd-HHmmss"
 $Backup = Join-Path $ClaudeHome "backups\bsaios-$Stamp"
 New-Item -ItemType Directory -Force $ClaudeHome | Out-Null
@@ -138,10 +141,24 @@ BackupAndCopy (Join-Path $RepoDir "harness\hooks\team")                         
 Get-ChildItem (Join-Path $RepoDir "harness\rules") -Filter *.md | ForEach-Object {
     BackupAndCopy $_.FullName ("rules\" + $_.Name)
 }
+Get-ChildItem (Join-Path $RepoDir "harness\commands") -Filter *.md | ForEach-Object {
+    BackupAndCopy $_.FullName ("commands\" + $_.Name)
+}
+
+# updater fora da sessao (bundle estavel) + wrappers de recuperacao -> ~\.claude\.bsaios\
+$UpdaterDir = Join-Path $ClaudeHome ".bsaios\updater"
+New-Item -ItemType Directory -Force $UpdaterDir | Out-Null
+Remove-Item (Join-Path $UpdaterDir "lib") -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $UpdaterDir "migrations") -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $RepoDir "install\lib")           (Join-Path $UpdaterDir "lib") -Recurse -Force
+Copy-Item (Join-Path $RepoDir "install\migrations")    (Join-Path $UpdaterDir "migrations") -Recurse -Force
+Copy-Item (Join-Path $RepoDir "install\manifest.json") (Join-Path $UpdaterDir "manifest.json") -Force
+Copy-Item (Join-Path $RepoDir "harness\wrappers\*")    (Join-Path $ClaudeHome ".bsaios") -Force
+Ok "updater + wrappers (.bsaios\updater; /bsaios-update no chat)"
 
 # ---------------------------------------------------------------- 3. plugin vendorizado (robocopy: caminhos longos)
 Say ""
-Say "[3/6] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
+Say "[3/7] Plugin bsaios-core -> $ClaudeHome\plugins\bsaios-marketplace"
 $Market = Join-Path $ClaudeHome "plugins\bsaios-marketplace"
 if (Test-Path $Market) {
     New-Item -ItemType Directory -Force (Join-Path $Backup "plugins") | Out-Null
@@ -156,14 +173,16 @@ Ok "marketplace por diretorio copiado ($SkillCount skills no plugin; os agents v
 
 # ---------------------------------------------------------------- 4. settings + CLAUDE.md
 Say ""
-Say "[4/6] Gerando settings.json e CLAUDE.md"
+Say "[4/7] Gerando settings.json e CLAUDE.md"
+if ($DryRun -and [string]::IsNullOrWhiteSpace($Name)) { $Name = "Dry Run"; $Role = "CI"; $Focus = "parity-check" }
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($Name)) {
     $Name  = Read-Host "  Seu nome"
     $Role  = Read-Host "  Sua funcao"
     $Focus = Read-Host "  Areas de foco"
 }
 $Render  = Join-Path $ScriptDir "lib\render-settings.js"
-$RenderArgs = @("--claude-home", $ClaudeHome, "--platform", "windows")
+$ProfilePath = Join-Path $ClaudeHome ".bsaios\profile.json"
+$RenderArgs = @("--claude-home", $ClaudeHome, "--platform", "windows", "--profile", $ProfilePath)
 if ($Name)  { $RenderArgs += @("--name",  $Name) }
 if ($Role)  { $RenderArgs += @("--role",  $Role) }
 if ($Focus) { $RenderArgs += @("--focus", $Focus) }
@@ -188,14 +207,14 @@ Ok "CLAUDE.md"
 
 # ---------------------------------------------------------------- 5. ferramentas externas
 Say ""
-Say "[5/6] Ferramentas externas (rtk, graphify, agent-browser)"
+Say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
 Invoke-ExtTool "rtk" "rtk" { Install-RtkWindows } { rtk init -g }
 Invoke-ExtTool "graphify" "graphify" { uv tool install graphifyy; graphify install; graphify claude install }
 Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx skills add vercel-labs/agent-browser }
 
 # ---------------------------------------------------------------- 6. extras
 Say ""
-Say "[6/6] Extras"
+Say "[6/7] Extras"
 if ($DryRun) {
     Ok "dry-run: pulando PyYAML"
 } elseif (-not (Get-Command python -ErrorAction SilentlyContinue)) {
@@ -210,6 +229,19 @@ if ($DryRun) {
         else { Warn "nao consegui instalar PyYAML - o hook validate-agent-frontmatter fica inerte ate: python -m pip install pyyaml" }
     }
 }
+
+# ---------------------------------------------------------------- 7. estado (.bsaios) - ULTIMO passo
+Say ""
+Say "[7/7] Estado -> $ClaudeHome\.bsaios"
+$StateArgs = @("--claude-home", $ClaudeHome, "--platform", "windows", "--repo", $RepoDir, "--manifest", (Join-Path $RepoDir "install\manifest.json"))
+if ($Name)  { $StateArgs += @("--name",  $Name) }
+if ($Role)  { $StateArgs += @("--role",  $Role) }
+if ($Focus) { $StateArgs += @("--focus", $Focus) }
+& node (Join-Path $ScriptDir "lib\bsaios-state.js") @StateArgs
+if ($LASTEXITCODE -ne 0) { throw "bsaios-state falhou ao gravar o estado" }
+Ok "version.json + profile.json + manifest.installed.json (carimbo por ultimo)"
+& node (Join-Path $ScriptDir "lib\verify-harness.js") --claude-home $ClaudeHome
+if ($LASTEXITCODE -ne 0) { Warn "health check reportou problemas (veja acima) - o install foi concluido, mas verifique" }
 
 Say ""
 Say "== Pronto =="

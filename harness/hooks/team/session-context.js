@@ -11,10 +11,18 @@ try {
   const path = require('path');
   const fs = require('fs');
   const { findProjectRoot, getGitInfo, detectTechStack, outputHook } = require('./utils.js');
+  const { updateBannerLine } = require('./update-check.js');
+
+  // Banner de defasagem do harness (independe do projeto) — cache-based, nao-bloqueante, fail-soft.
+  const claudeHome = path.resolve(__dirname, '..', '..');
+  const banner = updateBannerLine(claudeHome);
 
   const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const root = findProjectRoot(cwd);
-  if (!root) process.exit(0);
+  if (!root) {
+    if (banner) outputHook('SessionStart', banner);
+    process.exit(0);
+  }
 
   const git = getGitInfo(root);
   const stack = detectTechStack(root);
@@ -27,6 +35,7 @@ try {
   lines.push(`Arquivos modificados (git): ${git.dirtyCount}`);
   if (hasClaudeMd) lines.push('Há CLAUDE.md na raiz — leia antes de agir se ainda não leu.');
   lines.push('</contexto-do-projeto>');
+  if (banner) lines.push(banner);
 
   outputHook('SessionStart', lines.join('\n'));
 } catch {

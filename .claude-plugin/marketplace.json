@@ -1,0 +1,25 @@
+{
+  "name": "bsaios",
+  "owner": {
+    "name": "Black Sheep AIOS"
+  },
+  "metadata": {
+    "description": "Marketplace git (raiz do repo bbrak/black-sheep-aios) do Black Sheep AIOS. Fixe uma ref (tag) via extraKnownMarketplaces.bsaios.source.ref no settings.json. NOTA (Claude Code 2.1.206): 'plugin marketplace update' so atualiza metadados (bug fetch-sem-merge, issues #49410/#44276/#26744) — a entrega real e feita pelo instalador/comando de update; a ref serve como sinal de versao, nao como canal de auto-update. Ate o cutover (owner cria a tag stable + troca o settings.team.json), o marketplace de diretorio em plugins/.claude-plugin/marketplace.json continua sendo a entrega ativa."
+  },
+  "plugins": [
+    {
+      "name": "bsaios-core",
+      "source": "./plugins/bsaios-core",
+      "description": "53 skills curadas (49 destiladas do ECC 2.0.0-rc.1 com gold merge + 4 do Superpowers) + hooks do GateGuard. Os 21 agents ECC enrolados vivem no harness (escopo usuario, p/ team-os), de um total de 44 agents. Vendorizado - nunca instalar o ECC do marketplace upstream.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "workflow",
+      "tags": [
+        "skills",
+        "agents",
+        "hooks",
+        "gateguard"
+      ]
+    }
+  ]
+}
