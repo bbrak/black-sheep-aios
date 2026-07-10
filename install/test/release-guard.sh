@@ -54,12 +54,15 @@ CR && assert "R2 contagem-README falha" 0 || assert "R2 contagem-README falha" 1
 G reset --hard "$BASE" -q
 
 echo "== 5) release.js recusa [Nao lancado] vazio =="
-node -e "const f='$W/CHANGELOG.md',fs=require('fs');let s=fs.readFileSync(f,'utf8');s=s.replace(/## \[Não lançado\][\s\S]*?(?=\n## \[)/,'## [Não lançado]\n');fs.writeFileSync(f,s)"
+printf '# Changelog\n\n## [Não lançado]\n\n## [1.0.0] — 2026-07-07\n\n### Base\n- base\n' > "$W/CHANGELOG.md"
 node "$W/install/lib/release.js" minor --no-commit --date 2026-01-01 >/dev/null 2>&1 \
   && assert "release recusa changelog vazio" 0 || assert "release recusa changelog vazio" 1
 G reset --hard "$BASE" -q
 
 echo "== 6) release.js caminho feliz: promove + bump + propaga =="
+# changelog + manifest proprios: nao depende do repo (cujo [Nao lancado] fica vazio pos-release)
+printf '# Changelog\n\n## [Não lançado]\n\n### Adicionado\n- coisa nova\n\n## [1.0.0] — 2026-07-07\n\n### Base\n- base\n' > "$W/CHANGELOG.md"
+node -e "const f='$W/install/manifest.json',fs=require('fs');const j=JSON.parse(fs.readFileSync(f));j.version='1.0.0';fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
 node "$W/install/lib/release.js" minor --no-commit --date 2026-01-01 >/dev/null 2>&1
 node -e "process.exit(JSON.parse(require('fs').readFileSync('$W/install/manifest.json')).version==='1.1.0'?0:1)" && assert "manifest 1.1.0" 1 || assert "manifest 1.1.0" 0
 [ "$(cat "$W/VERSION")" = "1.1.0" ] && assert "VERSION 1.1.0" 1 || assert "VERSION 1.1.0" 0
