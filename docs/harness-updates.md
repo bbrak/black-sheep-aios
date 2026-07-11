@@ -39,23 +39,43 @@ O modelo é **canário → stable**, duas refs do **mesmo** repo:
 - **`bsaios`** aponta para a ref `stable` (todo o time). `stable` só avança depois do canário rodar
   limpo ~1 dia. **Rollback de um release ruim = repontar a tag** (não precisa mexer em máquina).
 
-Publicar uma versão:
+Publicar uma versão (ritual de 1 comando):
 
-1. Suba a mudança no repo e rode `node install/lib/sync-manifest.js --write` (sincroniza versão +
-   contagens em `plugin.json`/`marketplace.json`/`VERSION`). Faça o bump de `install/manifest.json`.
-2. Atualize o `CHANGELOG.md` (seção nova). Commit.
-3. Aponte a tag `latest` para o commit (canário recebe).
-4. Depois do canário limpo, aponte `stable` para o mesmo commit (o time recebe; o banner acende).
+1. **Registre a mudança** no `CHANGELOG.md`, na seção `## [Não lançado]`, **no mesmo PR** que muda o
+   conteúdo. O gate `check-release.js` no CI **bloqueia o merge** se você esquecer (ou se as contagens
+   do README ficarem defasadas, ou se a versão subir sem seção no changelog).
+2. **Rode o release** — um comando faz bump + promove o `[Não lançado]` → `[X.Y.Z]` + propaga
+   versão/contagens (`sync-manifest --write`) + commit `chore(release)`:
 
-## Cutover para o marketplace git (ação do owner, **pendente**)
+   ```bash
+   node install/lib/release.js <patch|minor|major>
+   ```
 
-Hoje a entrega ativa é o **marketplace de diretório** (o instalador copia o plugin para
-`~/.claude/plugins/bsaios-marketplace`). A infra do marketplace **git** já está pronta
-([`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) na raiz). O cutover é **1 ação
-do owner** e ainda **não** foi feito, de propósito:
+3. **Leve para a main** (push da branch → PR → merge; o CI roda o gate + os testes).
+4. **Publique movendo a tag** (conta `bbrak`, depois volte para `brokers`):
 
-1. Criar e empurrar as tags `stable` e `latest` no repo (elas ainda não existem — sem elas, apontar o
-   `settings.json` para o git quebraria a sessão de todo mundo).
+   ```bash
+   git tag -f stable origin/main && git push -f origin stable
+   ```
+
+   O banner do time acende na próxima sessão. (Canário: mova `latest` antes; `stable` depois do
+   canário rodar limpo ~1 dia.)
+
+> **Nunca** suba a versão ou mova a tag na mão sem passar pelo `release.js` + `CHANGELOG`. Foi
+> exatamente assim que a automação quase ficou com o **banner parado** (versão não subiu → ninguém
+> recebe aviso). O gate de CI existe para tornar esse esquecimento **impossível de mergear**.
+
+## Cutover para o marketplace git — decisão: **NÃO flipar (tags-only)**
+
+A entrega ativa é o **marketplace de diretório** (o instalador copia o plugin para
+`~/.claude/plugins/bsaios-marketplace`) e assim **fica**. A infra do marketplace **git** existe
+([`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) na raiz) e as tags
+`stable`/`latest` **já estão publicadas**, mas **não** trocamos `settings.team.json` para `github#stable`:
+o bug fetch-sem-merge do 2.1.206 (ver abaixo) torna o flip **inútil e arriscado**. A entrega real segue
+pelo `/bsaios-update`. Reavaliar só quando a Anthropic corrigir. **Se um dia flipar:**
+
+1. As tags `stable` e `latest` já existem (sem elas, apontar o `settings.json` para o git quebraria a
+   sessão de todo mundo).
 2. Trocar em `harness/settings.team.json` o `extraKnownMarketplaces` para o formato de **duas refs
    nomeadas** (o `#ref` só funciona na CLI; no `settings.json` é um campo `ref` separado — verificado
    no 2.1.206):

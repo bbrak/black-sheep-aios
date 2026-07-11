@@ -5,15 +5,16 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PV="$(node -e "console.log(require('$REPO/install/manifest.json').version)")"  # versao-alvo (nao hardcodar)
 H="$(mktemp -d)"
 trap 'rm -rf "$H"' EXIT
 FAILS=0
 assert() { if [ "$2" = "1" ]; then echo "PASS  $1"; else echo "FAIL  $1"; FAILS=$((FAILS+1)); fi; }
 
-echo "== 1) install (dry-run) -> v1.0.0 =="
+echo "== 1) install (dry-run) -> v$PV =="
 bash "$REPO/install/install.sh" --claude-home "$H" --dry-run >/dev/null 2>&1
 V=$(node -e "console.log(require('$H/.bsaios/version.json').product_version)")
-assert "install carimba version.json" "$([ "$V" = "1.0.0" ] && echo 1 || echo 0)"
+assert "install carimba version.json" "$([ "$V" = "$PV" ] && echo 1 || echo 0)"
 node "$REPO/install/lib/verify-harness.js" --claude-home "$H" --quiet >/dev/null && assert "verify-harness pos-install" 1 || assert "verify-harness pos-install" 0
 
 echo "== 2) simula estado antigo + pessoal + orfao =="
@@ -24,13 +25,13 @@ rm -f "$H/commands/bsaios-update.md"   # comando que o update DEVE entregar (fin
 node -e "const f='$H/settings.json';const j=require(f);j.model='opus';j.permissions.allow.push('Bash(pessoal:*)');require('fs').writeFileSync(f,JSON.stringify(j))"
 printf '{"theme":"dark"}\n' > "$H/settings.local.json"
 
-echo "== 3) update v0.9.0 -> v1.0.0 =="
+echo "== 3) update v0.9.0 -> v$PV =="
 node "$REPO/install/lib/bsaios-update.js" --claude-home "$H" --platform mac --repo "$REPO" --no-pull --yes >/dev/null 2>&1
 node -e '
 const fs=require("fs"),H="'$H'";
 const s=JSON.parse(fs.readFileSync(H+"/settings.json"));
 const ok=(k,v)=>{console.log((v?"PASS":"FAIL")+"  "+k);if(!v)process.exitCode=1;};
-ok("versao 1.0.0", JSON.parse(fs.readFileSync(H+"/.bsaios/version.json")).product_version==="1.0.0");
+ok("versao alvo", JSON.parse(fs.readFileSync(H+"/.bsaios/version.json")).product_version==="'$PV'");
 ok("orfao podado", !fs.existsSync(H+"/agents/OLD-ORPHAN.md"));
 ok("team hook vivo", JSON.stringify(s.hooks).includes("rtk hook claude"));
 ok("pessoal model preservado", s.model==="opus");
@@ -55,7 +56,7 @@ set +e
 node "$REPO/install/lib/bsaios-update.js" --claude-home "$H" --platform mac --repo "$REPO" --no-pull --yes --force >/dev/null 2>&1
 set -e
 VA=$(node -e "console.log(require('$H/.bsaios/version.json').product_version)")
-assert "corrupt settings: versao NAO carimbou 1.0.0" "$([ "$VA" = "0.9.0" ] && echo 1 || echo 0)"
+assert "corrupt settings: versao NAO avancou (ficou 0.9.0)" "$([ "$VA" = "0.9.0" ] && echo 1 || echo 0)"
 grep -q '"model": "opus"' "$H/settings.json" && assert "corrupt settings: pessoal nao apagado" 1 || assert "corrupt settings: pessoal nao apagado" 0
 
 echo ""

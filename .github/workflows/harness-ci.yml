@@ -11,11 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Guarda de drift (versao unica + contagens 49-vs-53)
         run: node install/lib/sync-manifest.js
+      - name: Gate de release (changelog + contagens README + conteudo-sem-changelog)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git fetch origin main --depth=50 2>/dev/null || true
+          node install/lib/check-release.js --base "${BASE_SHA:-origin/main}"
+      - name: Regressao do gate de frescor de docs
+        run: bash install/test/release-guard.sh
       - name: Ciclo install -> update -> rollback (pessoal sobrevive, orfaos podados, transacional)
         run: bash install/test/cycle.sh
       - name: E2E publicar skill -> banner -> /bsaios-update (git clone/pull real, remote local)
