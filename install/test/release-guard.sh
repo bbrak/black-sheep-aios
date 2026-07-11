@@ -22,7 +22,7 @@ echo "== 1) estado limpo => passa =="
 CR && assert "estado limpo passa" 1 || assert "estado limpo passa" 0
 
 echo "== 2) R3: modifica conteudo de skill SEM changelog => falha (contagem nao muda) =="
-SK="$(find "$W/plugins/bsaios-core/skills" -name SKILL.md | head -1)"
+SK="$(find "$W/plugins/bsaios-core/skills" -name SKILL.md -print -quit)"  # -quit: sem SIGPIPE (pipefail)
 printf '\n<!-- tweak -->\n' >> "$SK"
 G add -A; G commit -qm "tweak skill sem changelog"
 CR && assert "R3 conteudo-sem-changelog falha" 0 || assert "R3 conteudo-sem-changelog falha" 1
