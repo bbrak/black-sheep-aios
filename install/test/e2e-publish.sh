@@ -50,7 +50,7 @@ echo "$BANNER" | grep -q "v$NEXT_V disponivel" && assert "banner anuncia v$NEXT_
 
 echo "== 4) COLABORADOR roda /bsaios-update (git clone/pull REAL do remote local) =="
 BSAIOS_REPO_URL="file://$ORIGIN" node "$TEAM/.bsaios/updater/lib/bsaios-update.js" \
-  --claude-home "$TEAM" --platform mac --ref stable --yes 2>&1 | grep -E "update v|Atualizado|orfao|ERRO" | head
+  --claude-home "$TEAM" --platform mac --ref stable --yes 2>&1 | grep -E "update v|Atualizado|orfao|ERRO" | head || true
 
 echo "== 5) ASSERTS: skill nova chegou, versao carimbada, pessoal intacto =="
 node -e '
