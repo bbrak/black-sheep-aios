@@ -69,7 +69,7 @@ append_profile() { # <needle> <linha>  — grava no ~/.zprofile so se ainda nao 
 
 say ""
 say "== Black Sheep AIOS — instalacao automatica (macOS) =="
-say "   Instala, SO SE FALTAR: Homebrew, git, node, Claude Code, e o harness em $DIR."
+say "   Instala, SO SE FALTAR: Homebrew, git, node, uv, python, jq, VS Code, Claude Code, e o harness em $DIR."
 say "   Cada passo avisa antes de agir e CONTINUA mesmo se um item falhar (nada fica pela metade)."
 [ $DRY_RUN -eq 1 ] && say "   (DRY-RUN: nada sera instalado — apenas mostro o que faria.)"
 say ""
@@ -101,9 +101,9 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------- 2. git + node (via brew, so o que faltar)
+# ---------------------------------------------------------------- 2. pre-requisitos (via brew, so o que faltar)
 say ""
-say "[2/5] git + node"
+say "[2/5] VS Code + pre-requisitos (git, node, uv, python, jq)"
 brew_pkg() { # <bin> <formula>
   if have "$1"; then ok "$1 ja instalado"; return; fi
   if [ $DRY_RUN -eq 1 ]; then warn "$1 ausente (dry-run) — faria: brew install $2"; return; fi
@@ -116,8 +116,20 @@ brew_pkg() { # <bin> <formula>
     warn "$1 falhou (fail-soft) — tente: brew install $2"
   fi
 }
-brew_pkg git  git
-brew_pkg node node
+brew_pkg git     git
+brew_pkg node    node
+brew_pkg uv      uv       # graphify instala via 'uv tool install'
+brew_pkg python3 python   # hook validate-agent-frontmatter (PyYAML)
+brew_pkg jq      jq       # team-os descobre agents de plugins (fail-soft sem ele)
+
+# VS Code — editor onde o time trabalha (terminal integrado + Claude Code). Cask, nao formula.
+if have code; then ok "VS Code ja instalado"
+elif [ $DRY_RUN -eq 1 ]; then warn "VS Code ausente (dry-run) — faria: brew install --cask visual-studio-code"
+else
+  info "instalando VS Code..."
+  if brew install --cask visual-studio-code >/dev/null 2>&1; then ok "VS Code instalado (comando 'code' disponivel)"
+  else warn "VS Code falhou (fail-soft) — baixe manual: https://code.visualstudio.com"; fi
+fi
 
 # ---------------------------------------------------------------- 3. Claude Code
 say ""

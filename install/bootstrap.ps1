@@ -50,7 +50,7 @@ function Update-SessionPath {
 
 Say ""
 Say "== Black Sheep AIOS - instalacao automatica (Windows) =="
-Say "   Instala, SO SE FALTAR: gerenciador de pacotes (winget/scoop), git, node, Claude Code, e o harness em $Dir."
+Say "   Instala, SO SE FALTAR: gerenciador de pacotes (winget/scoop), git, node, uv, python, jq, VS Code, Claude Code, e o harness em $Dir."
 Say "   Cada passo avisa antes de agir e CONTINUA mesmo se um item falhar (nada fica pela metade)."
 Say "   Dica: cole este comando no PowerShell (nao no Prompt de Comando antigo)."
 if ($DryRun) { Say "   (DRY-RUN: nada sera instalado - apenas mostro o que faria.)" }
@@ -78,10 +78,10 @@ if (Have winget) {
 
 # ---------------------------------------------------------------- 2. git + node (so o que faltar)
 Say ""
-Say "[2/5] git + node"
-if (-not $DryRun -and -not $UseScoop -and ((-not (Have git)) -or (-not (Have node)))) {
+Say "[2/5] VS Code + pre-requisitos (git, node, uv, python, jq)"
+if (-not $DryRun -and -not $UseScoop -and -not ((Have git) -and (Have node) -and (Have uv) -and (Have python) -and (Have jq))) {
     Say "   Se o Windows abrir um dialogo de 'Controle de Conta de Usuario' (UAC) pedindo permissao para"
-    Say "   instalar git/node, pode clicar em 'Sim' - e o gerenciador de pacotes instalando esses programas."
+    Say "   instalar esses programas, pode clicar em 'Sim' - e o gerenciador de pacotes instalando-os."
 }
 function Install-Pkg($bin, $wingetId, $scoopId) {
     if (Have $bin) { Ok "$bin ja instalado"; return }
@@ -95,8 +95,12 @@ function Install-Pkg($bin, $wingetId, $scoopId) {
         if (Have $bin) { Ok "$bin instalado" } else { Warn "$bin instalou mas nao esta no PATH - reabra o PowerShell" }
     } catch { Warn "$bin falhou (fail-soft) - $($_.Exception.Message)" }
 }
-Install-Pkg "git"  "Git.Git"           "git"
-Install-Pkg "node" "OpenJS.NodeJS.LTS" "nodejs-lts"
+Install-Pkg "git"    "Git.Git"            "git"
+Install-Pkg "node"   "OpenJS.NodeJS.LTS"  "nodejs-lts"
+Install-Pkg "uv"     "astral-sh.uv"       "uv"       # graphify instala via 'uv tool install'
+Install-Pkg "python" "Python.Python.3.12" "python"   # hook validate-agent-frontmatter (PyYAML)
+Install-Pkg "jq"     "jqlang.jq"          "jq"       # team-os descobre agents de plugins
+Install-Pkg "code"   "Microsoft.VisualStudioCode" "vscode"  # editor do time (terminal integrado + Claude Code)
 
 # ---------------------------------------------------------------- 3. Claude Code
 Say ""

@@ -210,7 +210,7 @@ Say ""
 Say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
 Invoke-ExtTool "rtk" "rtk" { Install-RtkWindows } { rtk init -g }
 Invoke-ExtTool "graphify" "graphify" { uv tool install graphifyy; graphify install; graphify claude install }
-Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx skills add vercel-labs/agent-browser }
+Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx -y skills add vercel-labs/agent-browser -a claude-code -g -y; npx -y skills remove find-skills -g -y 2>$null }
 
 # ---------------------------------------------------------------- 6. extras
 Say ""

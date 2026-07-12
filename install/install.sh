@@ -182,7 +182,7 @@ ext_tool "rtk" "rtk --version" \
 ext_tool "graphify" "graphify --version" \
   "uv tool install graphifyy && graphify install && graphify claude install"
 ext_tool "agent-browser" "agent-browser --version" \
-  "npm install -g agent-browser && agent-browser install && npx skills add vercel-labs/agent-browser"
+  "npm install -g agent-browser && agent-browser install && npx -y skills add vercel-labs/agent-browser -a claude-code -g -y && (npx -y skills remove find-skills -g -y >/dev/null 2>&1 || true)"
 
 # ---------------------------------------------------------------- 6. extras
 say ""

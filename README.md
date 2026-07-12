@@ -6,30 +6,74 @@ time usa. Funciona igual em **Windows e macOS**, e você **não precisa saber pr
 
 ---
 
-## 🚀 Instalar (1 comando)
+## 🚀 Comece aqui — instalação do zero (Windows e macOS)
 
-> Você vai colar **um** comando num programa chamado **Terminal** (Mac) ou **PowerShell** (Windows).
-> Ele instala **tudo sozinho** — inclusive as ferramentas de base (Homebrew/winget, git, node e o
-> próprio Claude Code) — e no fim avisa **"TUDO PRONTO"**. Se algo já estiver instalado, ele pula; se
-> você rodar de novo, não quebra nada.
+> **Nunca mexeu com isso? Perfeito.** Siga os passos **na ordem**, um de cada vez — cada passo diz o
+> que fazer e como saber que deu certo. Você vai trabalhar dentro de **um** programa (o **VS Code**),
+> e um **único comando** instala todo o resto. No fim aparece **"TUDO PRONTO"**.
 
-### 1) Abra o terminal
+> ### 🆘 Travou ou deu erro em qualquer passo? Não sofra sozinho.
+> Abra o Claude (em **[claude.ai](https://claude.ai)** ou no app) e **cole o prompt do assistente de
+> instalação** — ele vira um guia que resolve com você, um passo de cada vez:
+>
+> 👉 **[Abrir o prompt do assistente de instalação](https://github.com/bbrak/black-sheep-aios/blob/stable/assist/INSTALL-ASSIST-PROMPT.md)**
+>
+> No link, clique em **"Copy raw file"** (ícone de copiar), cole no Claude, e diga em qual passo travou.
 
-**macOS — Terminal**
-1. Aperte **⌘ Cmd + barra de espaço** (abre a busca do Spotlight).
-2. Digite **Terminal** e aperte **Enter**.
-3. Abre uma janela com um cursor piscando — é aqui que você cola o comando.
+### Passo 1 — Instale o VS Code (onde você vai trabalhar)
 
-<!-- 🖼️ PRINT PENDENTE (Fase 3): docs/assets/mac-abrir-terminal.png -->
+O **VS Code** é o "editor": a janela onde você organiza seus projetos e conversa com o Claude. É
+gratuito, da Microsoft.
 
-**Windows — PowerShell** (use o PowerShell, **não** o "Prompt de Comando" antigo)
-1. Aperte a tecla **⊞ Windows**.
-2. Digite **PowerShell**.
-3. Clique em **Windows PowerShell**.
+1. Abra **[code.visualstudio.com](https://code.visualstudio.com)** e clique no botão **Download**.
+2. **Windows:** abra o arquivo baixado → **Avançar → Avançar → Instalar → Concluir**. Deixe marcada
+   a opção *"Adicionar ao PATH"* (já vem marcada).
+3. **macOS:** abra o `.zip` baixado → arraste o ícone **Visual Studio Code** para a pasta
+   **Aplicativos** → abra pelo **Launchpad** (ou ⌘+espaço → digite "Visual Studio Code").
 
-<!-- 🖼️ PRINT PENDENTE (Fase 3): docs/assets/win-abrir-powershell.png -->
+✅ **Deu certo?** O VS Code abre numa janela de boas-vindas.
 
-### 2) Cole o comando do seu sistema e aperte Enter
+<!-- 🖼️ PRINT PENDENTE: docs/assets/vscode-download.png -->
+
+### Passo 2 — Crie sua pasta de projetos
+
+Todo o seu trabalho vai morar **numa pasta só**, organizada por projeto. Isso evita bagunça e evita
+o erro mais comum do time: **rodar comando no lugar errado** (fora de uma pasta sua, dá erro).
+
+1. **Windows:** abra o **Explorador de Arquivos** → entre em **Documentos** → botão direito →
+   **Novo → Pasta** → nomeie **`Projetos`**.
+2. **macOS:** abra o **Finder** → entre em **Documentos** → **Arquivo → Nova Pasta** → nomeie
+   **`Projetos`**.
+
+> 💡 Depois, cada trabalho novo vira uma **subpasta** dentro de `Projetos`
+> (ex.: `Projetos/cliente-site`). Um lugar para cada coisa.
+
+### Passo 3 — Abra a pasta `Projetos` no VS Code
+
+1. No VS Code: **Arquivo (File) → Abrir Pasta… (Open Folder…)**.
+2. Selecione a pasta **`Projetos`** e clique em **Abrir**.
+3. Se perguntar *"Você confia nos autores desta pasta?"*, clique em **"Sim, confio"**.
+
+✅ **Deu certo?** O nome **PROJETOS** aparece na barra lateral esquerda.
+
+### Passo 4 — Abra o terminal dentro do VS Code
+
+O **terminal** é onde você cola comandos. No VS Code ele fica **na própria janela** — você não
+precisa caçar um programa separado (essa era a maior confusão do time).
+
+1. Menu **Terminal → Novo Terminal** — ou o atalho **Ctrl + `** (a tecla da crase, logo abaixo do Esc).
+2. Abre um painel embaixo com um cursor piscando. É aí que você cola o comando do próximo passo.
+
+> No **Windows** esse terminal já é o **PowerShell** (o certo); no **macOS** é o **zsh**. Nos dois, o
+> comando do Passo 5 funciona igual.
+
+<!-- 🖼️ PRINT PENDENTE: docs/assets/vscode-terminal.png -->
+
+### Passo 5 — Cole o comando de instalação e aperte Enter
+
+Cole o comando do **seu sistema** no terminal do VS Code (Passo 4) e aperte **Enter**. Ele instala
+**tudo sozinho** — o VS Code (se faltar), git, node, Python, e o próprio Claude Code — e no fim avisa
+**"TUDO PRONTO"**. Se algo já existe, ele pula; se você rodar de novo, não quebra nada.
 
 **macOS:**
 ```bash
@@ -53,11 +97,16 @@ personalizar o assistente). É só responder.
 >
 > No **Windows não há senha de administrador** — o winget e o Claude Code instalam no seu usuário.
 
-### 3) Quando aparecer "TUDO PRONTO"
+> **⚠️ Vai aparecer `[Y/n]` algumas vezes:** perto do fim, o instalador pergunta se pode instalar as
+> **ferramentas externas do time** (RTK, Graphify, agent-browser). Digite **`Y`** e aperte **Enter**
+> em cada uma. Se você pular, ou se alguma falhar, não tem problema — nada quebra e o instalador segue.
 
-1. **Feche o terminal e abra um novo** (para as ferramentas entrarem no PATH — a "lista de lugares
-   onde o sistema procura programas").
-2. Digite **`claude`** e aperte Enter.
+### Passo 6 — Quando aparecer "TUDO PRONTO"
+
+1. **Feche o terminal do VS Code e abra um novo:** clique no ícone de **lixeira** no painel do
+   terminal, depois **Terminal → Novo Terminal**. Isso faz o comando `claude` aparecer (o PATH
+   recarrega). Se ainda não achar, **feche e reabra o VS Code inteiro**.
+2. No terminal novo, digite **`claude`** e aperte **Enter**.
 3. Dentro do Claude, rode **`/bsaios-core:ecc-guide`** para conhecer os atalhos.
 
 Pronto — seu Claude Code ficou igual ao do resto do time. **Pode parar aqui.**
@@ -71,15 +120,16 @@ Baseado nas **primeiras instalações reais do time** — se você travou em alg
 | Sintoma | O que é | O que fazer |
 |---|---|---|
 | **A senha não aparece quando eu digito** (Mac) | O terminal esconde a senha de propósito, por segurança. | Digite normalmente (mesmo sem ver nada) e aperte **Enter**. Não travou. |
-| **`claude: command not found` depois de instalar** | O PATH ainda não recarregou nesta janela. | **Feche o terminal e abra um novo.** No Windows, se persistir, reabra o PowerShell — o instalador já ajustou o PATH. |
+| **`claude: command not found` depois de instalar** | O PATH ainda não recarregou nesta janela. | **Feche o terminal do VS Code (ícone de lixeira) e abra um novo.** Se persistir, **feche e reabra o VS Code inteiro**. |
 | **Ficou 5-10 min "parado" baixando algo** (Mac) | Numa máquina nova, o Homebrew baixa as *Ferramentas do Xcode* (uma vez só). | **Não é a internet travando** — deixe rodar até o fim. |
-| **Não sei onde está o terminal** | Dentro do VS Code ele fica escondido. | Abra o **Terminal/PowerShell do sistema** (passo 1 acima), **fora** do VS Code. |
+| **Não sei onde está o terminal** | No VS Code ele fica na própria janela, num painel embaixo. | Menu **Terminal → Novo Terminal**, ou atalho **Ctrl + `** (Passo 4). |
 | **Windows bloqueou o download** (SmartScreen/antivírus) | Proteção do Windows barrando um instalador. | O comando usa o **winget** e o instalador oficial da Anthropic (confiáveis). Se ainda barrar, permita o **App Installer** pela Microsoft Store. |
-| **Colei e não aconteceu nada** | Provavelmente colou no lugar errado (no chat do Claude, num arquivo, ou no terminal do VS Code). | Cole **no Terminal/PowerShell do sistema** (passo 1) — não em outro lugar. |
+| **Colei e não aconteceu nada** | Provavelmente colou no lugar errado (no chat do Claude, ou dentro de um arquivo aberto). | Cole **no terminal do VS Code** (o painel de baixo, Passo 4) — clique nele antes de colar. |
 | **Deu erro no meio e parou uma parte** | O instalador é **fail-soft**: avisa, dá o comando manual e **continua** — nunca deixa a máquina pela metade. | Leia o aviso amarelo `[!!]`, rode o comando manual sugerido, ou simplesmente **rode o mesmo comando de novo** (é idempotente). |
+| **`graphify: ... 'uv' não é reconhecido`** (Windows) | Faltava o `uv` (usado para instalar o Graphify). Já corrigido no instalador. | **Feche e reabra o terminal** e rode o mesmo comando de novo — agora o `uv` é instalado antes do Graphify. |
 
-Ainda travado? Existe um **assistente por IA** que te guia um passo de cada vez — veja *Instalação
-assistida por IA* na seção **Instalação manual (avançado)** abaixo.
+Ainda travado? Use o **assistente de instalação por IA** — o prompt está no topo desta página (no
+box 🆘) e também detalhado na seção **Instalação manual (avançado)** abaixo.
 
 ---
 
