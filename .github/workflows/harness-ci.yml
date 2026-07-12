@@ -44,6 +44,8 @@ jobs:
           TMP="$(mktemp -d)"
           bash install/install.sh --claude-home "$TMP" --dry-run
           node install/lib/verify-harness.js --claude-home "$TMP"
+      - name: Bootstrap — idempotencia + cadeia isolada (bootstrap-check)
+        run: bash install/test/bootstrap-check.sh
 
   install-windows:
     name: install.ps1 -DryRun + verify (Windows — paridade)
@@ -59,3 +61,6 @@ jobs:
           $TMP = Join-Path $env:RUNNER_TEMP "claude-test"
           pwsh install/install.ps1 -DryRun -ClaudeHome $TMP
           node install/lib/verify-harness.js --claude-home $TMP
+      - name: Bootstrap ps1 — smoke dry-run (sintaxe + fail-soft num Windows real)
+        shell: pwsh
+        run: pwsh install/bootstrap.ps1 -DryRun
