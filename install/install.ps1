@@ -221,12 +221,18 @@ Invoke-ExtTool "graphify" "graphify" {
     graphify install
     graphify claude install
 }
-# 'npm install -g' poe o bin no prefixo global do npm, que NAO esta no PATH desta sessao -> os
-# comandos seguintes falhavam com "agent-browser nao reconhecido". Injeta o prefixo antes de usar.
+# 'npm install -g' poe o .cmd no prefixo global do npm (%APPDATA%\npm no Windows padrao). Como o
+# node costuma ser machine-wide, esse dir NAO esta no PATH do usuario -> persiste (sessao + User)
+# p/ o 'agent-browser' ser achado agora E ao reabrir. Usa 'cmd /c' (npm.cmd) p/ nao esbarrar na
+# ExecutionPolicy do npm.ps1; fallback p/ %APPDATA%\npm.
 Invoke-ExtTool "agent-browser" "agent-browser" {
     npm install -g agent-browser
-    $npmBin = (& npm prefix -g 2>$null)
-    if ($npmBin) { $env:Path = "$env:Path;$npmBin" }
+    $npmBin = (cmd /c "npm config get prefix" 2>$null | Select-Object -Last 1)
+    if ($npmBin) { $npmBin = $npmBin.Trim() }
+    if (-not $npmBin) { $npmBin = Join-Path $env:APPDATA "npm" }
+    $env:Path = "$env:Path;$npmBin"
+    $u = [Environment]::GetEnvironmentVariable("Path","User")
+    if (($u -split ';') -notcontains $npmBin) { [Environment]::SetEnvironmentVariable("Path", ($u.TrimEnd(';') + ";" + $npmBin), "User") }
     agent-browser install
     npx -y skills add vercel-labs/agent-browser -a claude-code -g -y
     npx -y skills remove find-skills -g -y 2>$null
