@@ -209,8 +209,28 @@ Ok "CLAUDE.md"
 Say ""
 Say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
 Invoke-ExtTool "rtk" "rtk" { Install-RtkWindows } { rtk init -g }
-Invoke-ExtTool "graphify" "graphify" { uv tool install graphifyy; graphify install; graphify claude install }
-Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx -y skills add vercel-labs/agent-browser -a claude-code -g -y; npx -y skills remove find-skills -g -y 2>$null }
+# graphify precisa de 'uv'. Se o bootstrap nao conseguiu instalar (winget quebrado), instala via o
+# script oficial aqui mesmo; e poe ~/.local/bin (bin do uv e das tools) no PATH da MESMA sessao.
+Invoke-ExtTool "graphify" "graphify" {
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+        $env:Path = "$env:Path;" + (Join-Path $env:USERPROFILE ".local\bin")
+    }
+    uv tool install graphifyy
+    $env:Path = "$env:Path;" + (Join-Path $env:USERPROFILE ".local\bin")
+    graphify install
+    graphify claude install
+}
+# 'npm install -g' poe o bin no prefixo global do npm, que NAO esta no PATH desta sessao -> os
+# comandos seguintes falhavam com "agent-browser nao reconhecido". Injeta o prefixo antes de usar.
+Invoke-ExtTool "agent-browser" "agent-browser" {
+    npm install -g agent-browser
+    $npmBin = (& npm prefix -g 2>$null)
+    if ($npmBin) { $env:Path = "$env:Path;$npmBin" }
+    agent-browser install
+    npx -y skills add vercel-labs/agent-browser -a claude-code -g -y
+    npx -y skills remove find-skills -g -y 2>$null
+}
 
 # ---------------------------------------------------------------- 6. extras
 Say ""
@@ -225,6 +245,10 @@ if ($DryRun) {
     else {
         cmd /c "python -m pip install pyyaml >nul 2>nul"
         cmd /c "python -c ""import yaml"" >nul 2>nul"
+        if ($LASTEXITCODE -ne 0) {
+            cmd /c "python -m pip install --user pyyaml >nul 2>nul"   # fallback: sem permissao no site-packages global
+            cmd /c "python -c ""import yaml"" >nul 2>nul"
+        }
         if ($LASTEXITCODE -eq 0) { Ok "PyYAML instalado" }
         else { Warn "nao consegui instalar PyYAML - o hook validate-agent-frontmatter fica inerte ate: python -m pip install pyyaml" }
     }
