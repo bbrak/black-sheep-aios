@@ -249,14 +249,16 @@ if ($DryRun) {
     cmd /c "python -c ""import yaml"" >nul 2>nul"
     if ($LASTEXITCODE -eq 0) { Ok "PyYAML ja presente" }
     else {
-        cmd /c "python -m pip install pyyaml >nul 2>nul"
+        # python machine-wide tem site-packages nao-gravavel -> --user explicito (o pip cai nele de
+        # qualquer forma). NAO engole o erro: captura e mostra a ultima linha real se falhar.
+        $pipOut = cmd /c "python -m pip install --user --disable-pip-version-check pyyaml 2>&1"
         cmd /c "python -c ""import yaml"" >nul 2>nul"
-        if ($LASTEXITCODE -ne 0) {
-            cmd /c "python -m pip install --user pyyaml >nul 2>nul"   # fallback: sem permissao no site-packages global
-            cmd /c "python -c ""import yaml"" >nul 2>nul"
-        }
         if ($LASTEXITCODE -eq 0) { Ok "PyYAML instalado" }
-        else { Warn "nao consegui instalar PyYAML - o hook validate-agent-frontmatter fica inerte ate: python -m pip install pyyaml" }
+        else {
+            $pipErr = ($pipOut | Where-Object { $_ -match '\S' } | Select-Object -Last 1)
+            Warn "nao consegui instalar PyYAML: $pipErr"
+            Warn "hook validate-agent-frontmatter fica inerte ate: python -m pip install --user pyyaml"
+        }
     }
 }
 
