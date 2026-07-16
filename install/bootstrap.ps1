@@ -3,8 +3,9 @@
 # Comando unico (do README):
 #   powershell -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/bbrak/black-sheep-aios/stable/install/bootstrap.ps1 | iex"
 #
-# Resolve o que o install.ps1 so SUGERE: garante um gerenciador de pacotes (winget, fallback scoop) ->
-# git/node -> Claude Code, clona o harness em ~\black-sheep-aios e chama install\install.ps1. Zero
+# Resolve o que o install.ps1 so SUGERE: garante um gerenciador de pacotes (winget com auto-reparo,
+# fallback scoop, e instaladores oficiais por ferramenta) -> git/node/uv/python/jq/VS Code -> Claude
+# Code, clona o harness em ~\black-sheep-aios e chama install\install.ps1. Zero
 # duplicacao: toda a logica de harness fica la. Paridade com o install/bootstrap.sh (macOS).
 #
 # Invariantes (Fase 0 §3 -> §5.3 do spec):
@@ -47,10 +48,42 @@ function Have($b) { [bool](Get-Command $b -ErrorAction SilentlyContinue) }
 function Update-SessionPath {
     $env:Path = [Environment]::GetEnvironmentVariable("Path","User") + ";" + [Environment]::GetEnvironmentVariable("Path","Machine")
 }
+function Add-UserPath($dir) {
+    if (-not $dir) { return }
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    $u = [Environment]::GetEnvironmentVariable("Path","User")
+    if (($u -split ';') -notcontains $dir) { [Environment]::SetEnvironmentVariable("Path", ($u.TrimEnd(';') + ";" + $dir), "User") }
+    if (($env:Path -split ';') -notcontains $dir) { $env:Path = "$env:Path;$dir" }
+}
+# winget PODE existir como alias e mesmo assim NAO executar (conta nova: App Installer nao
+# registrado p/ o usuario -> "nao e possivel o acesso ao arquivo"). Por isso checamos a EXECUCAO.
+function Test-WingetOk {
+    if (-not (Have winget)) { return $false }
+    try { $null = & winget --version 2>&1; return ($LASTEXITCODE -eq 0) } catch { return $false }
+}
+function Repair-Winget {
+    try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop }
+    catch { return $false }
+    return (Test-WingetOk)
+}
+# Instaladores oficiais (sem winget, sem admin) - ULTIMO recurso por ferramenta, p/ o instalador
+# nunca depender do estado do gerenciador de pacotes da maquina.
+function Install-UvDirect   { Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression; Add-UserPath (Join-Path $env:USERPROFILE ".local\bin"); Update-SessionPath }
+function Install-JqDirect {
+    $bin = Join-Path $env:USERPROFILE ".local\bin"; New-Item -ItemType Directory -Force $bin | Out-Null
+    Invoke-WebRequest "https://github.com/jqlang/jq/releases/latest/download/jq-windows-amd64.exe" -OutFile (Join-Path $bin "jq.exe") -UseBasicParsing
+    Add-UserPath $bin
+}
+function Install-CodeDirect {
+    $setup = Join-Path $env:TEMP "VSCodeUserSetup.exe"
+    Invoke-WebRequest "https://update.code.visualstudio.com/latest/win32-x64-user/stable" -OutFile $setup -UseBasicParsing
+    Start-Process $setup -Wait -ArgumentList "/verysilent","/norestart","/mergetasks=!runcode,addtopath"
+    Remove-Item $setup -Force -ErrorAction SilentlyContinue; Update-SessionPath
+}
 
 Say ""
 Say "== Black Sheep AIOS - instalacao automatica (Windows) =="
-Say "   Instala, SO SE FALTAR: gerenciador de pacotes (winget/scoop), git, node, Claude Code, e o harness em $Dir."
+Say "   Instala, SO SE FALTAR: gerenciador de pacotes (winget/scoop), git, node, uv, python, jq, VS Code, Claude Code, e o harness em $Dir."
 Say "   Cada passo avisa antes de agir e CONTINUA mesmo se um item falhar (nada fica pela metade)."
 Say "   Dica: cole este comando no PowerShell (nao no Prompt de Comando antigo)."
 if ($DryRun) { Say "   (DRY-RUN: nada sera instalado - apenas mostro o que faria.)" }
@@ -59,44 +92,65 @@ Say ""
 # ---------------------------------------------------------------- 1. gerenciador de pacotes
 Say "[1/5] Gerenciador de pacotes (winget / scoop)"
 $UseScoop = $false
-if (Have winget) {
-    Ok "winget presente"
-} elseif ($DryRun) {
-    Warn "winget ausente (dry-run) - faria: tentar scoop (irm get.scoop.sh | iex) ou instruir o App Installer na Microsoft Store"
+$script:WingetOk = $false
+if ($DryRun) {
+    if (Have winget) { Ok "winget presente (dry-run: nao valido execucao)" }
+    else { Warn "winget ausente (dry-run) - faria: scoop (irm get.scoop.sh | iex) ou instaladores oficiais por ferramenta" }
+} elseif (Test-WingetOk) {
+    $script:WingetOk = $true; Ok "winget presente e funcional"
 } else {
-    Warn "winget (App Installer) ausente. Tentando o scoop (nao precisa de admin)..."
-    if (-not (Have scoop)) {
-        try {
-            Invoke-RestMethod get.scoop.sh | Invoke-Expression
-            Update-SessionPath
-            if (Have scoop) { Ok "scoop instalado" }
-        } catch { Warn "scoop falhou (fail-soft) - instale o 'App Installer' na Microsoft Store e rode de novo. $($_.Exception.Message)" }
+    if (Have winget) {
+        Warn "winget existe mas NAO executa (tipico de conta nova - App Installer nao registrado). Tentando reparar..."
+        if (Repair-Winget) { $script:WingetOk = $true; Ok "winget reparado (App Installer re-registrado)" }
+        else { Warn "reparo do winget falhou - sigo com scoop e instaladores oficiais." }
+    } else {
+        Warn "winget (App Installer) ausente. Tentando o scoop (nao precisa de admin)..."
     }
-    if (Have scoop) { $UseScoop = $true; Ok "usando scoop como gerenciador de pacotes" }
-    else { Warn "sem winget nem scoop - git/node vao falhar; instale o 'App Installer' (Microsoft Store) e rode de novo." }
+    if (-not $script:WingetOk) {
+        if (-not (Have scoop)) {
+            try {
+                Invoke-RestMethod get.scoop.sh | Invoke-Expression
+                Update-SessionPath
+                if (Have scoop) { Ok "scoop instalado" }
+            } catch { Warn "scoop falhou (fail-soft) - $($_.Exception.Message)" }
+        }
+        if (Have scoop) { $UseScoop = $true; Ok "usando scoop como gerenciador de pacotes" }
+        else { Warn "sem winget nem scoop - usarei o instalador oficial de cada ferramenta quando houver (uv/jq/VS Code)." }
+    }
 }
 
 # ---------------------------------------------------------------- 2. git + node (so o que faltar)
 Say ""
-Say "[2/5] git + node"
-if (-not $DryRun -and -not $UseScoop -and ((-not (Have git)) -or (-not (Have node)))) {
+Say "[2/5] VS Code + pre-requisitos (git, node, uv, python, jq)"
+if (-not $DryRun -and -not $UseScoop -and -not ((Have git) -and (Have node) -and (Have uv) -and (Have python) -and (Have jq))) {
     Say "   Se o Windows abrir um dialogo de 'Controle de Conta de Usuario' (UAC) pedindo permissao para"
-    Say "   instalar git/node, pode clicar em 'Sim' - e o gerenciador de pacotes instalando esses programas."
+    Say "   instalar esses programas, pode clicar em 'Sim' - e o gerenciador de pacotes instalando-os."
 }
-function Install-Pkg($bin, $wingetId, $scoopId) {
+# Cadeia de fallback: winget (se funcional) -> scoop (se presente) -> instalador oficial ($Direct).
+# Verifica por CAPACIDADE (Have $bin) apos cada metodo, nao por exit code - so desiste no fim.
+function Install-Pkg($bin, $wingetId, $scoopId, [scriptblock]$Direct) {
     if (Have $bin) { Ok "$bin ja instalado"; return }
-    if ($DryRun) { Warn "$bin ausente (dry-run) - faria: winget install $wingetId (ou scoop install $scoopId)"; return }
+    if ($DryRun) { Warn "$bin ausente (dry-run) - faria: winget $wingetId -> scoop $scoopId -> instalador oficial"; return }
     Info "instalando $bin..."
-    try {
-        if ($UseScoop) { scoop install $scoopId }
-        elseif (Have winget) { winget install --id $wingetId -e --source winget --accept-source-agreements --accept-package-agreements }
-        else { Warn "$bin ausente e sem gerenciador de pacotes (fail-soft) - instale git/node manualmente"; return }
-        Update-SessionPath
-        if (Have $bin) { Ok "$bin instalado" } else { Warn "$bin instalou mas nao esta no PATH - reabra o PowerShell" }
-    } catch { Warn "$bin falhou (fail-soft) - $($_.Exception.Message)" }
+    if (-not (Have $bin) -and $script:WingetOk) {
+        try { winget install --id $wingetId -e --source winget --accept-source-agreements --accept-package-agreements; Update-SessionPath }
+        catch { Warn "winget nao instalou ${bin}: $($_.Exception.Message)" }
+    }
+    if (-not (Have $bin) -and (Have scoop)) {
+        try { scoop install $scoopId; Update-SessionPath } catch { Warn "scoop nao instalou ${bin}: $($_.Exception.Message)" }
+    }
+    if (-not (Have $bin) -and $Direct) {
+        try { Info "usando instalador oficial de $bin..."; & $Direct } catch { Warn "instalador oficial de ${bin} falhou: $($_.Exception.Message)" }
+    }
+    if (Have $bin) { Ok "$bin instalado" }
+    else { Warn "$bin nao instalou por nenhum metodo (fail-soft) - manual: winget install $wingetId" }
 }
-Install-Pkg "git"  "Git.Git"           "git"
-Install-Pkg "node" "OpenJS.NodeJS.LTS" "nodejs-lts"
+Install-Pkg "git"    "Git.Git"            "git"
+Install-Pkg "node"   "OpenJS.NodeJS.LTS"  "nodejs-lts"
+Install-Pkg "uv"     "astral-sh.uv"       "uv"       { Install-UvDirect }    # graphify instala via 'uv tool install'
+Install-Pkg "python" "Python.Python.3.12" "python"                           # hook validate-agent-frontmatter (PyYAML)
+Install-Pkg "jq"     "jqlang.jq"          "jq"       { Install-JqDirect }    # team-os descobre agents de plugins
+Install-Pkg "code"   "Microsoft.VisualStudioCode" "vscode" { Install-CodeDirect }  # editor do time (terminal + Claude Code)
 
 # ---------------------------------------------------------------- 3. Claude Code
 Say ""

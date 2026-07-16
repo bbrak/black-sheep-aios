@@ -62,7 +62,7 @@ grep -q "Dry Run" "$CHB/CLAUDE.md" 2>/dev/null && ok "identidade de teste aplica
 
 echo ""
 echo "== C. cadeia REAL (so com deps presentes; instala 0 dependencias) =="
-if have brew && have git && have node && have claude; then
+if have brew && have git && have node && have uv && have python3 && have jq && have code && have claude; then
   DIRC="$SBX/harness-c"; CHC="$SBX/claude-c"
   ( cd "$SBX" && BSAIOS_REPO_URL="file://$ORIGIN" BSAIOS_UPDATE_REF=stable BSAIOS_CLAUDE_HOME="$CHC" \
       bash "$BOOT" --dir "$DIRC" --yes --skip-tools \
@@ -85,12 +85,12 @@ if have brew && have git && have node && have claude; then
       --name "Teste Bootstrap" --role "CI" --focus "parity" >/dev/null 2>&1 )
   [ -f "$DIRC/RELEASE_MARKER.txt" ] && ok "update pega o stable movido (fetch --tags --force)" || no "update NAO pegou o stable movido (bug do fetch de tag)"
 else
-  skip "cadeia real pulada (brew/git/node/claude ausentes — ex.: CI). A cadeia dry-run (B) ja cobre o chaining."
+  skip "cadeia real pulada (algum pre-req do passo 2 ausente: brew/git/node/uv/python/jq/code/claude — ex.: CI). A cadeia dry-run (B) ja cobre o chaining."
 fi
 
 echo ""
 echo "== E. caminho sem-flags (ARGS vazio no passo 5) nao aborta — regressao do blocker =="
-if have brew && have git && have node && have claude; then
+if have brew && have git && have node && have uv && have python3 && have jq && have code && have claude; then
   DIRE="$SBX/harness-e"; mkdir -p "$DIRE/install"
   printf '#!/usr/bin/env bash\necho STUB_INSTALL_OK\n' > "$DIRE/install/install.sh"
   git -C "$DIRE" init -q
@@ -101,7 +101,7 @@ if have brew && have git && have node && have claude; then
   echo "$OUTE" | grep -q "TUDO PRONTO"     && ok "no-flag: chegou ao done-signal (ARGS vazio nao abortou)" || no "no-flag: abortou antes do done-signal (blocker do ARGS vazio)"
   echo "$OUTE" | grep -q "STUB_INSTALL_OK" && ok "no-flag: chamou o install.sh (ARGS vazio expandiu ok)"   || no "no-flag: nao chamou o install.sh"
 else
-  skip "check E pulado (brew/git/node/claude ausentes)"
+  skip "check E pulado (algum pre-req do passo 2 ausente: brew/git/node/uv/python/jq/code/claude)"
 fi
 
 echo ""

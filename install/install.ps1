@@ -209,8 +209,34 @@ Ok "CLAUDE.md"
 Say ""
 Say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
 Invoke-ExtTool "rtk" "rtk" { Install-RtkWindows } { rtk init -g }
-Invoke-ExtTool "graphify" "graphify" { uv tool install graphifyy; graphify install; graphify claude install }
-Invoke-ExtTool "agent-browser" "agent-browser" { npm install -g agent-browser; agent-browser install; npx skills add vercel-labs/agent-browser }
+# graphify precisa de 'uv'. Se o bootstrap nao conseguiu instalar (winget quebrado), instala via o
+# script oficial aqui mesmo; e poe ~/.local/bin (bin do uv e das tools) no PATH da MESMA sessao.
+Invoke-ExtTool "graphify" "graphify" {
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+        $env:Path = "$env:Path;" + (Join-Path $env:USERPROFILE ".local\bin")
+    }
+    uv tool install graphifyy
+    $env:Path = "$env:Path;" + (Join-Path $env:USERPROFILE ".local\bin")
+    graphify install
+    graphify claude install
+}
+# 'npm install -g' poe o .cmd no prefixo global do npm (%APPDATA%\npm no Windows padrao). Como o
+# node costuma ser machine-wide, esse dir NAO esta no PATH do usuario -> persiste (sessao + User)
+# p/ o 'agent-browser' ser achado agora E ao reabrir. Usa 'cmd /c' (npm.cmd) p/ nao esbarrar na
+# ExecutionPolicy do npm.ps1; fallback p/ %APPDATA%\npm.
+Invoke-ExtTool "agent-browser" "agent-browser" {
+    npm install -g agent-browser
+    $npmBin = (cmd /c "npm config get prefix" 2>$null | Select-Object -Last 1)
+    if ($npmBin) { $npmBin = $npmBin.Trim() }
+    if (-not $npmBin) { $npmBin = Join-Path $env:APPDATA "npm" }
+    $env:Path = "$env:Path;$npmBin"
+    $u = [Environment]::GetEnvironmentVariable("Path","User")
+    if (($u -split ';') -notcontains $npmBin) { [Environment]::SetEnvironmentVariable("Path", ($u.TrimEnd(';') + ";" + $npmBin), "User") }
+    agent-browser install
+    npx -y skills add vercel-labs/agent-browser -a claude-code -g -y
+    npx -y skills remove find-skills -g -y 2>$null
+}
 
 # ---------------------------------------------------------------- 6. extras
 Say ""
@@ -223,10 +249,16 @@ if ($DryRun) {
     cmd /c "python -c ""import yaml"" >nul 2>nul"
     if ($LASTEXITCODE -eq 0) { Ok "PyYAML ja presente" }
     else {
-        cmd /c "python -m pip install pyyaml >nul 2>nul"
+        # python machine-wide tem site-packages nao-gravavel -> --user explicito (o pip cai nele de
+        # qualquer forma). NAO engole o erro: captura e mostra a ultima linha real se falhar.
+        $pipOut = cmd /c "python -m pip install --user --disable-pip-version-check pyyaml 2>&1"
         cmd /c "python -c ""import yaml"" >nul 2>nul"
         if ($LASTEXITCODE -eq 0) { Ok "PyYAML instalado" }
-        else { Warn "nao consegui instalar PyYAML - o hook validate-agent-frontmatter fica inerte ate: python -m pip install pyyaml" }
+        else {
+            $pipErr = ($pipOut | Where-Object { $_ -match '\S' } | Select-Object -Last 1)
+            Warn "nao consegui instalar PyYAML: $pipErr"
+            Warn "hook validate-agent-frontmatter fica inerte ate: python -m pip install --user pyyaml"
+        }
     }
 }
 
