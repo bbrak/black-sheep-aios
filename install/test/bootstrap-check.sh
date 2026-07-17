@@ -169,7 +169,9 @@ echo ""
 echo "== D. sem poluicao: ~/.claude real + CWD do repo intactos =="
 REAL_LEAK_AFTER="$(installer_leak_sig)"
 [ "$REAL_LEAK_BEFORE" = "$REAL_LEAK_AFTER" ] && ok "~/.claude real intacto (nenhum backup do instalador vazou da isolacao)" || no "o instalador VAZOU p/ o ~/.claude real (novo backups/bsaios-*)"
-[ ! -e "$REPO/CLAUDE.md" ] && [ ! -e "$REPO/.agents" ] && [ ! -e "$REPO/skills-lock.json" ] \
+# CLAUDE.md agora e versionado (instrucoes de projeto) — poluicao = git sujo, nao mera presenca
+[ ! -e "$REPO/.agents" ] && [ ! -e "$REPO/skills-lock.json" ] \
+   && [ -z "$(git -C "$REPO" status --porcelain -- CLAUDE.md 2>/dev/null)" ] \
                              && ok "CWD do repo sem poluicao de ferramentas" || no "CWD do repo poluido"
 ZAFTER="$(cksum "$HOME/.zprofile" 2>/dev/null || echo none)"
 [ "$ZBEFORE" = "$ZAFTER" ]   && ok "~/.zprofile intacto (nenhum append_profile vazou)" || no "~/.zprofile mudou"
