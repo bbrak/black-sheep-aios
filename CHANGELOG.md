@@ -10,6 +10,20 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 ## [Não lançado]
 
 ### Corrigido
+- **Instalação Windows robusta ao estado da máquina.** `bootstrap.ps1`/`install.ps1` deixam de
+  depender de o winget estar saudável:
+  - winget é validado por **execução** (`winget --version`), não só presença; se existe mas não
+    roda (típico de conta recém-criada — App Installer não registrado, erro "não é possível o
+    acesso ao arquivo"), tenta **auto-reparo** (`Add-AppxPackage -RegisterByFamilyName`) antes de
+    cair para scoop.
+  - cada pré-requisito ganha **cadeia de fallback** winget → scoop → **instalador oficial**
+    (uv via `astral.sh`, jq via binário do release, VS Code via User Setup), verificada por
+    capacidade (`Get-Command`) após cada método — só desiste no fim.
+  - `graphify` instala o `uv` sozinho se faltar e injeta `~/.local/bin` no PATH da sessão
+    (fim do `'uv' não é reconhecido`).
+  - `agent-browser` injeta o bin global do npm no PATH **antes** de `agent-browser install`
+    (fim do `'agent-browser' não é reconhecido`); registro da skill sem `find-skills`.
+  - PyYAML tenta `pip install --user` como fallback.
 - **Instalação macOS — paridade com os fixes já aplicados no Windows.** Auditoria dos instaladores
   macOS contra as 6 classes de problema corrigidas no Windows. O PyYAML, principal suspeito, estava
   **correto**: a cadeia `--break-system-packages || --user` cobre tanto o Python do Homebrew (que é
