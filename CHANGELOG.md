@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.1] — 2026-07-17
+
 ### Corrigido
 - **O aviso de update agora é visível para o usuário.** O banner de defasagem do harness saía como
   `additionalContext` do hook SessionStart — ou seja, ia para o **contexto do modelo**, invisível para
