@@ -14,7 +14,7 @@ const { spawn } = require('child_process');
 const REF = process.env.BSAIOS_UPDATE_REF || 'stable';
 // origem do VERSION; overridavel para forks/self-host e e2e (aceita um caminho local/file://)
 const RAW_URL = process.env.BSAIOS_VERSION_URL || `https://raw.githubusercontent.com/bbrak/black-sheep-aios/${REF}/VERSION`;
-const TTL_MS = 24 * 60 * 60 * 1000; // throttle diario
+const TTL_MS = 4 * 60 * 60 * 1000; // throttle: re-checa a cada 4h (aviso mais rapido, ainda detached/zero-latencia)
 const NET_TIMEOUT_MS = 1500;        // time-box da rede
 
 function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; } }
