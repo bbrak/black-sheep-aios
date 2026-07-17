@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.2] — 2026-07-17
+
 ### Modificado
 - **Aviso de update mais rápido.** O throttle da checagem de defasagem caiu de 24h para **4h** — o
   banner passa a refletir um release novo em poucas horas, não em até um dia. A checagem continua
