@@ -101,7 +101,22 @@ personalizar o assistente). É só responder.
 > **ferramentas externas do time** (RTK, Graphify, agent-browser). Digite **`Y`** e aperte **Enter**
 > em cada uma. Se você pular, ou se alguma falhar, não tem problema — nada quebra e o instalador segue.
 
-### Passo 6 — Quando aparecer "TUDO PRONTO"
+> **⚠️ Ele vai perguntar seu nome, sua função e sua área de foco.** Responda com o que fizer sentido
+> pra você — não existe resposta errada, é só para o assistente te chamar pelo nome e ajustar o tom
+> (ex.: *Maria* · *Designer* · *design, redes sociais*). **Não dá para deixar em branco:** se apertar
+> Enter sem escrever nada, ele pergunta de novo.
+
+### Passo 6 — Quando o instalador terminar
+
+Ele termina de um jeito **ou** do outro. Veja qual apareceu **antes de fechar o terminal**:
+
+- ✅ **"TUDO PRONTO"** — deu certo, siga os passos abaixo.
+- ⚠️ **"INSTALAÇÃO INCOMPLETA — N etapa(s) falharam"** — alguma coisa não instalou. **Não feche o
+  terminal ainda:** role para cima e procure as linhas vermelhas **`[XX]`** — cada uma diz o comando
+  que resolve. Na dúvida, **rode o mesmo comando do Passo 5 de novo** (ele não duplica nada), ou
+  copie o terminal inteiro para o assistente de instalação (box 🆘 no topo desta página).
+
+Apareceu **"TUDO PRONTO"**? Então:
 
 1. **Feche o terminal do VS Code e abra um novo:** clique no ícone de **lixeira** no painel do
    terminal, depois **Terminal → Novo Terminal**. Isso faz o comando `claude` aparecer (o PATH
@@ -126,6 +141,8 @@ Baseado nas **primeiras instalações reais do time** — se você travou em alg
 | **Windows bloqueou o download** (SmartScreen/antivírus) | Proteção do Windows barrando um instalador. | O comando usa o **winget** e o instalador oficial da Anthropic (confiáveis). Se ainda barrar, permita o **App Installer** pela Microsoft Store. |
 | **Colei e não aconteceu nada** | Provavelmente colou no lugar errado (no chat do Claude, ou dentro de um arquivo aberto). | Cole **no terminal do VS Code** (o painel de baixo, Passo 4) — clique nele antes de colar. |
 | **Deu erro no meio e parou uma parte** | O instalador é **fail-soft**: avisa, dá o comando manual e **continua** — nunca deixa a máquina pela metade. | Leia o aviso amarelo `[!!]`, rode o comando manual sugerido, ou simplesmente **rode o mesmo comando de novo** (é idempotente). |
+| **Apareceu "INSTALAÇÃO INCOMPLETA" no fim** | Alguma etapa falhou de verdade (rede caiu, senha errada, disco cheio). Ele avisa em vez de fingir que deu certo. | **Não feche o terminal.** Role para cima até as linhas vermelhas **`[XX]`** — cada uma traz o comando que resolve. Depois **rode o mesmo comando do Passo 5 de novo**. |
+| **Ele reclamou do "Xcode Command Line Tools"** (Mac) | São as ferramentas de base da Apple (o `git` vem delas). Faltam, ou quebraram depois de uma atualização do macOS. | Rode **`xcode-select --install`**, aceite a janela que abrir, espere terminar, e rode o comando do Passo 5 de novo. |
 | **`graphify: ... 'uv' não é reconhecido`** (Windows) | Faltava o `uv` (usado para instalar o Graphify). Já corrigido no instalador. | **Feche e reabra o terminal** e rode o mesmo comando de novo — agora o `uv` é instalado antes do Graphify. |
 
 Ainda travado? Use o **assistente de instalação por IA** — o prompt está no topo desta página (no

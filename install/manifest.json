@@ -151,13 +151,14 @@
       "name": "agent-browser",
       "why": "Navegacao/automacao web para agentes (Playwright MCP fica desativado de proposito).",
       "install": {
-        "windows": "npm install -g agent-browser && agent-browser install && npx skills add vercel-labs/agent-browser",
-        "mac": "npm install -g agent-browser && agent-browser install && npx skills add vercel-labs/agent-browser"
+        "windows": "npm install -g agent-browser && agent-browser install && npx -y skills add vercel-labs/agent-browser -a claude-code -g -y && npx -y skills remove find-skills -g -y",
+        "mac": "npm install -g agent-browser && agent-browser install && npx -y skills add vercel-labs/agent-browser -a claude-code -g -y && npx -y skills remove find-skills -g -y"
       },
       "check": {
         "windows": "agent-browser --version",
         "mac": "agent-browser --version"
-      }
+      },
+      "note": "As flags nao sao opcionais: '-a claude-code -g -y' restringe o alvo ao Claude Code (mata o EPERM em System32\\.agents e o fanout de 18 alvos) e 'skills remove find-skills' desfaz a skill extra que o add arrasta junto."
     }
   ],
   "harness": {
