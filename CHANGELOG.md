@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.0] — 2026-07-17
+
 ### Corrigido
 - **macOS: o PATH agora chega ao terminal do VS Code.** O instalador gravava as linhas de PATH
   (`brew shellenv` + `~/.local/bin`) só no `~/.zprofile`, que é lido por shells de **login**
