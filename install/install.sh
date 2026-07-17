@@ -55,6 +55,7 @@ warn() { printf '  \033[33m[!!]\033[0m %s\n' "$*"; }
 # off the default PATH entirely. Resolve both HERE so the ext_tool chains below find what they just
 # installed, in THIS session. Parity with install.ps1:74 (Update-SessionPath inside Invoke-ExtTool).
 ensure_session_path() {
+  mkdir -p "$HOME/.local/bin" 2>/dev/null || true   # o 'uv tool install' (graphify) escreve aqui
   case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
   local p
   for p in /opt/homebrew /usr/local; do
