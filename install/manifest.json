@@ -1,7 +1,7 @@
 {
   "product": "Black Sheep AIOS",
   "slug": "black-sheep-aios",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Harness de IA replicavel do time: Claude Code + skills, agents, hooks e rules curados, cross-platform (Windows + macOS).",
   "claudeHome": {
     "windows": "%USERPROFILE%\\.claude",

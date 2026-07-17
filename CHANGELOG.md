@@ -9,6 +9,16 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.3] — 2026-07-17
+
+### Modificado
+- **O banner de update aparece na mesma sessão (sem lag de "uma sessão atrasado").** Antes, a checagem
+  disparava a busca de versão num processo **destacado**, cujo resultado só valia na sessão seguinte —
+  então o aviso aparecia uma sessão depois. Agora, quando o cache expira, a busca é **síncrona e
+  time-boxed** (~0,5s no caminho feliz, teto ~2,5s; no máximo 1x por TTL), então o banner já reflete o
+  release **na sessão atual**. Continua **fail-soft** (rede lenta/offline → usa o cache atual, nunca
+  trava) e é pulado em CI. Nenhum comando manual é necessário em nenhum momento.
+
 ## [1.2.2] — 2026-07-17
 
 ### Modificado
