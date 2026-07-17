@@ -20,7 +20,7 @@ try {
   const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const root = findProjectRoot(cwd);
   if (!root) {
-    if (banner) outputHook('SessionStart', banner);
+    if (banner) outputHook('SessionStart', null, banner);
     process.exit(0);
   }
 
@@ -35,9 +35,8 @@ try {
   lines.push(`Arquivos modificados (git): ${git.dirtyCount}`);
   if (hasClaudeMd) lines.push('Há CLAUDE.md na raiz — leia antes de agir se ainda não leu.');
   lines.push('</contexto-do-projeto>');
-  if (banner) lines.push(banner);
-
-  outputHook('SessionStart', lines.join('\n'));
+  // banner do harness -> systemMessage (visivel ao USUARIO); contexto do projeto -> additionalContext (modelo)
+  outputHook('SessionStart', lines.join('\n'), banner);
 } catch {
   process.exit(0);
 }

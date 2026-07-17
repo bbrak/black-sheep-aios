@@ -56,12 +56,14 @@ function detectTechStack(root) {
   return marks.length ? marks.join(', ') : 'indefinida';
 }
 
-/** Emite o JSON de contexto adicional no formato de hook do Claude Code. */
-function outputHook(eventName, additionalContext) {
-  if (!additionalContext) return;
-  process.stdout.write(JSON.stringify({
-    hookSpecificOutput: { hookEventName: eventName, additionalContext }
-  }));
+/** Emite o JSON de hook do Claude Code. `additionalContext` vai para o modelo;
+ *  `systemMessage` (opcional) e mostrado ao USUARIO no terminal. */
+function outputHook(eventName, additionalContext, systemMessage) {
+  const out = {};
+  if (systemMessage) out.systemMessage = systemMessage;
+  if (additionalContext) out.hookSpecificOutput = { hookEventName: eventName, additionalContext };
+  if (!out.systemMessage && !out.hookSpecificOutput) return;
+  process.stdout.write(JSON.stringify(out));
 }
 
 /** Lê o stdin do hook (JSON do Claude Code) e devolve objeto — {} se falhar. */
