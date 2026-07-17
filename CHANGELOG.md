@@ -10,6 +10,19 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 ## [Não lançado]
 
 ### Corrigido
+- **macOS: o PATH agora chega ao terminal do VS Code.** O instalador gravava as linhas de PATH
+  (`brew shellenv` + `~/.local/bin`) só no `~/.zprofile`, que é lido por shells de **login**
+  (Terminal.app). O terminal integrado do VS Code — que o README manda usar — roda um shell
+  **non-login**, que lê o `~/.zshrc` e **ignora** o `.zprofile`. Resultado numa instalação real:
+  tudo instalado, mas o terminal do VS Code nunca via o PATH e o `claude` dava `command not found`.
+  Agora o `append_profile` grava **nos dois** (`.zprofile` e `.zshrc`), idempotente por arquivo.
+  Coberto pela nova cadeia de teste **H**.
+- **macOS: `~/.local/bin` é criado antes de instalar `claude`/`graphify`.** Os dois instalam ali (o
+  Claude nativo e o `uv tool install`); se o diretório não existia, podiam falhar antes de criá-lo.
+  `ensure_local_bin` e `ensure_session_path` agora fazem `mkdir -p` primeiro.
+- **macOS: falha do instalador do Claude vira erro visível.** O `curl | bash` do Claude Code passa a
+  mostrar a saída na tela e a contar como `fail()` (com o comando de retry), em vez de virar só um
+  aviso amarelo fácil de perder.
 - **Instalação Windows robusta ao estado da máquina.** `bootstrap.ps1`/`install.ps1` deixam de
   depender de o winget estar saudável:
   - winget é validado por **execução** (`winget --version`), não só presença; se existe mas não

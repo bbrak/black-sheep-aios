@@ -79,7 +79,12 @@ run_logged() { # <label> <cmd>
 # Apple Silicon vs Intel: onde o Homebrew mora.
 if [ "$(uname -m)" = "arm64" ]; then BREW_PREFIX="/opt/homebrew"; else BREW_PREFIX="/usr/local"; fi
 load_brew() { [ -x "$BREW_PREFIX/bin/brew" ] && eval "$("$BREW_PREFIX/bin/brew" shellenv)"; }
-ensure_local_bin() { case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac; }
+# Cria o dir alem de po-lo no PATH: e onde o claude nativo e o 'uv tool install' (graphify) escrevem,
+# e se ele nao existe esses instaladores podem falhar antes de cria-lo.
+ensure_local_bin() {
+  mkdir -p "$HOME/.local/bin" 2>/dev/null || true
+  case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+}
 
 # Presenca != funcionamento: um brew cujo Xcode CLT sumiu (comum apos upgrade do macOS) continua
 # existindo como arquivo executavel e passa num teste -x, mas morre em toda invocacao.
@@ -89,12 +94,20 @@ brew_works() {
   return 1
 }
 
-# BSAIOS_PROFILE: costura de teste — deixa o bootstrap-check exercitar o append de verdade sem
-# escrever no ~/.zprofile de quem roda o teste.
-append_profile() { # <needle> <linha>  — grava no ~/.zprofile so se ainda nao existe (idempotente)
-  local needle="$1" line="$2" prof="${BSAIOS_PROFILE:-$HOME/.zprofile}"
-  [ -f "$prof" ] || touch "$prof"
-  grep -qF "$needle" "$prof" 2>/dev/null || printf '\n%s\n' "$line" >> "$prof"
+# Grava nos rc dos DOIS tipos de shell interativo, idempotente por arquivo:
+#   - ~/.zprofile  → shell de LOGIN (Terminal.app abre assim)
+#   - ~/.zshrc     → shell INTERATIVO (o terminal do VS Code e non-login e le SO o .zshrc)
+# O terminal do VS Code — que o README manda usar — nao le o .zprofile. Gravar so nele fazia o PATH
+# nunca carregar ali: a pessoa via 'claude: command not found' mesmo com tudo instalado. Um login
+# shell le os dois; o brew shellenv rodar 2x e inofensivo (idempotente).
+# BSAIOS_PROFILE: costura de teste — aponta para um unico arquivo no sandbox e nao toca os rc reais.
+append_profile() { # <needle> <linha>
+  local needle="$1" line="$2" f targets
+  if [ -n "${BSAIOS_PROFILE:-}" ]; then targets="$BSAIOS_PROFILE"; else targets="$HOME/.zprofile $HOME/.zshrc"; fi
+  for f in $targets; do
+    [ -f "$f" ] || touch "$f"
+    grep -qF "$needle" "$f" 2>/dev/null || printf '\n%s\n' "$line" >> "$f"
+  done
 }
 
 # A agulha tem de casar com a linha GRAVADA, ou o append deixa de ser idempotente. A linha guarda
@@ -219,8 +232,13 @@ if have claude; then
 elif [ $DRY_RUN -eq 1 ]; then
   warn "claude ausente (dry-run) — faria: curl -fsSL https://claude.ai/install.sh | bash"
 else
-  info "instalando o Claude Code..."
-  curl -fsSL https://claude.ai/install.sh | bash || warn "instalador do Claude retornou erro (fail-soft)"
+  info "instalando o Claude Code... (o download aparece abaixo)"
+  # Deixa a saida do instalador do Claude VISIVEL (nao engole): se falhar, o motivo fica na tela.
+  # pipefail (set no topo) faz o exit do curl OU do bash derrubar o if — sem mascarar erro de rede.
+  if curl -fsSL https://claude.ai/install.sh | bash; then :; else
+    fail "o instalador do Claude Code falhou (veja o erro acima; costuma ser rede)."
+    warn "  Tente de novo, manual: curl -fsSL https://claude.ai/install.sh | bash"
+  fi
   ensure_local_bin; hash -r
   if have claude; then
     ok "Claude Code instalado ($(claude --version 2>/dev/null || echo '?'))"

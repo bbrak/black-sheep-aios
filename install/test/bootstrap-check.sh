@@ -104,6 +104,20 @@ else
 fi
 
 echo ""
+echo "== H. PATH vai para .zprofile E .zshrc (terminal do VS Code e non-login, le so o .zshrc) =="
+# Exercita o append_profile REAL (sem BSAIOS_PROFILE) com HOME isolado: prova que o PATH e gravado
+# NOS DOIS rc. Sem o .zshrc, o terminal do VS Code (non-login) nunca carrega o PATH e o 'claude' some.
+if have brew && have git && have node && have uv && have python3 && have jq && have code && have claude; then
+  FH="$SBX/fakehome"; mkdir -p "$FH"; DIRH="$SBX/harness-h"; CHH="$SBX/claude-h"
+  ( cd "$SBX" && HOME="$FH" BSAIOS_REPO_URL="file://$ORIGIN" BSAIOS_UPDATE_REF=stable BSAIOS_CLAUDE_HOME="$CHH" \
+      bash "$BOOT" --dir "$DIRH" --yes --skip-tools --name X --role Y --focus Z >/dev/null 2>&1 )
+  grep -qF '.local/bin' "$FH/.zprofile" 2>/dev/null && ok ".zprofile recebeu o PATH (shell de login)"     || no ".zprofile NAO recebeu o PATH"
+  grep -qF '.local/bin' "$FH/.zshrc"    2>/dev/null && ok ".zshrc recebeu o PATH (terminal do VS Code)"   || no ".zshrc NAO recebeu o PATH — VS Code nao veria o claude"
+else
+  skip "check H pulado (algum pre-req do passo 2 ausente)"
+fi
+
+echo ""
 echo "== F. done-signal honesto: se uma etapa falha, NAO diz 'TUDO PRONTO' =="
 # Caminho de falha REAL alcancavel sem instalar nada: um harness clonado mas sem install/install.sh.
 # Antes, o bootstrap avisava e AINDA ASSIM imprimia "TUDO PRONTO" + exit 0 — mandando a pessoa embora
