@@ -50,11 +50,43 @@ say()  { printf '%s\n' "$*"; }
 ok()   { printf '  \033[32m[ok]\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m[!!]\033[0m %s\n' "$*"; }
 
+# Tool bins land in ~/.local/bin ('uv tool install', Claude's native installer) or under brew's
+# prefix — neither is guaranteed in a non-interactive PATH, and Apple Silicon keeps /opt/homebrew
+# off the default PATH entirely. Resolve both HERE so the ext_tool chains below find what they just
+# installed, in THIS session. Parity with install.ps1:74 (Update-SessionPath inside Invoke-ExtTool).
+ensure_session_path() {
+  case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+  local p
+  for p in /opt/homebrew /usr/local; do
+    if [ -x "$p/bin/brew" ]; then eval "$("$p/bin/brew" shellenv)"; break; fi
+  done
+  hash -r
+}
+ensure_session_path
+
+# An installer that fails mutely turns a real error into "nao consegui" with no diagnosis. Keep the
+# happy path quiet, but print the tail of the actual output whenever a step fails.
+run_logged() { # <label> <cmd>
+  local label="$1" cmd="$2" log="" rc=0
+  log="$(mktemp -t bsaios)" || { bash -c "$cmd"; return $?; }
+  bash -c "$cmd" >"$log" 2>&1 || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    warn "$label falhou (exit $rc) — ultimas linhas:"
+    tail -8 "$log" | sed 's/^/      /'
+  fi
+  rm -f "$log"
+  return "$rc"
+}
+
 # ext_tool <id> <check-cmd> <install-cmd> [post-install-cmd]
 # Instala uma ferramenta externa AUSENTE: pergunta (a menos que --yes), instala, verifica e roda o post.
 # Fail-soft em qualquer ponto: avisa e segue, nunca aborta o instalador.
 ext_tool() {
   local id="$1" check="$2" inst="$3" post="${4:-}"
+  # Binario ja presente = no-op, igual ao Windows (install.ps1:65). NAO re-rodamos a integracao aqui:
+  # seria trabalho de rede a cada rerun do install.sh (o caso comum de so atualizar o harness) e
+  # divergiria do .ps1. Se a integracao ficou pela metade numa maquina que ja tinha o binario, quem
+  # reporta e o verify-harness (passo [7/7]), sem mutar nada em silencio.
   if bash -c "$check" >/dev/null 2>&1; then ok "$id (ja instalado)"; return; fi
   if [ "$SKIP_TOOLS" -eq 1 ]; then warn "$id ausente (--skip-tools) — instale depois: $inst"; return; fi
   if [ "$DRY_RUN" -eq 1 ]; then warn "$id ausente (dry-run: nao instala) — comando: $inst"; return; fi
@@ -64,16 +96,41 @@ ext_tool() {
   else warn "$id ausente (sem terminal p/ perguntar; use --yes) — instale depois: $inst"; return; fi
   case "${ans:-y}" in [nN]*) warn "$id pulado (fail-soft) — instale depois: $inst"; return ;; esac
   say "  instalando $id..."
-  if bash -c "$inst"; then
+  if run_logged "$id" "$inst"; then
+    ensure_session_path   # o bin recem-instalado precisa ser achavel AGORA (uv escreve em ~/.local/bin)
     if bash -c "$check" >/dev/null 2>&1; then
       ok "$id instalado"
-      [ -n "$post" ] && { bash -c "$post" >/dev/null 2>&1 && ok "$post" || warn "'$post' falhou (rode manualmente)"; }
+      ext_post "$id" "$post"
     else
       warn "$id: instalou mas '$check' ainda falha — verifique o PATH (ex.: ~/.local/bin) e reabra o terminal"
     fi
   else
     warn "$id: instalacao falhou (fail-soft) — tente manualmente: $inst"
   fi
+}
+
+# Integracao pos-instalacao (registrar no Claude, baixar o browser), rodada logo apos instalar o
+# binario. Separada do passo de install porque so ela depende do PATH recem-atualizado pelo
+# ensure_session_path (o bin acabou de nascer em ~/.local/bin).
+ext_post() {
+  local id="$1" post="${2:-}"
+  if [ -z "$post" ] || [ "$SKIP_TOOLS" -eq 1 ] || [ "$DRY_RUN" -eq 1 ]; then return 0; fi
+  if run_logged "$id: $post" "$post"; then ok "$id: $post"; else warn "$id: '$post' falhou — rode manualmente: $post"; fi
+}
+
+# Quem instala pode nao saber o que responder em "areas de foco" e simplesmente apertar Enter. O
+# render-settings RECUSA identidade vazia (lib/render-settings.js:65-70) e, sob 'set -e', essa recusa
+# derrubava o instalador la na frente, no passo [4/7], com um erro de node ilegivel. Perguntar ate ter
+# resposta resolve na hora, perto de quem pode responder.
+ANSWER=""
+ask_required() { # <pergunta> <exemplo>
+  local prompt="$1" example="$2"
+  ANSWER=""
+  [ -t 0 ] || return 1
+  while [ -z "$ANSWER" ]; do
+    read -r -p "  $prompt" ANSWER || { ANSWER=""; return 1; }
+    if [ -z "$ANSWER" ]; then say "     (nao pode ficar em branco — exemplo: $example)"; fi
+  done
 }
 
 say ""
@@ -89,6 +146,14 @@ need() { # need <id> <cmd de teste> <como instalar>
   if bash -c "$2" >/dev/null 2>&1; then ok "$1"
   else warn "$1 AUSENTE — instale com: $3"; MISSING=$((MISSING+1)); fi
 }
+# On a bare Mac /usr/bin/git and /usr/bin/python3 EXIST as Command Line Tools stubs: `command -v`
+# finds them, but running one pops a GUI dialog and fails. Check the toolchain itself first, or the
+# 'git AUSENTE' below is a lie that also spawns a dialog nobody asked for.
+if ! xcode-select -p >/dev/null 2>&1; then
+  warn "Xcode Command Line Tools AUSENTES — o git/python3 do sistema sao apenas atalhos que nao funcionam."
+  warn "  Instale com: xcode-select --install   (o bootstrap.sh instala junto com o Homebrew)"
+  MISSING=$((MISSING+1))
+fi
 need "git"          "git --version"          "xcode-select --install"
 need "node"         "node --version"         "brew install node"
 need "python3"      "python3 --version"      "brew install python"
@@ -97,7 +162,11 @@ need "jq"           "jq --version"           "brew install jq   (recomendado: te
 need "claude"       "claude --version"       "curl -fsSL https://claude.ai/install.sh | bash"
 
 # git e node sao obrigatorios para o proprio instalador
-command -v node >/dev/null 2>&1 || { echo "ERRO: node e obrigatorio para o instalador."; exit 1; }
+command -v node >/dev/null 2>&1 || {
+  echo "ERRO: node e obrigatorio para o instalador. Instale com: brew install node"
+  echo "      (ou rode install/bootstrap.sh, que instala o Homebrew e o node pra voce)."
+  exit 1
+}
 [ $MISSING -gt 0 ] && warn "$MISSING item(ns) ausente(s) — o instalador segue; instale-os depois (lista completa: install/manifest.json)."
 
 # ---------------------------------------------------------------- 2. harness -> CLAUDE_HOME
@@ -155,9 +224,17 @@ say ""
 say "[4/7] Gerando settings.json e CLAUDE.md"
 if [ $DRY_RUN -eq 1 ] && [ -z "$NAME" ]; then NAME="Dry Run"; ROLE="CI"; FOCUS="parity-check"; fi
 if [ $DRY_RUN -eq 0 ] && [ -z "$NAME" ]; then
-  read -r -p "  Seu nome: " NAME || NAME=""
-  read -r -p "  Sua funcao: " ROLE || ROLE=""
-  read -r -p "  Areas de foco: " FOCUS || FOCUS=""
+  say "  Tres perguntas rapidas — o assistente usa isso pra te chamar pelo nome e ajustar o tom."
+  ask_required "Seu nome: "      "Maria"                 && NAME="$ANSWER"
+  ask_required "Sua funcao: "    "Designer"              && ROLE="$ANSWER"
+  ask_required "Areas de foco: " "design, redes sociais" && FOCUS="$ANSWER"
+fi
+# Rede de seguranca p/ quando nao ha terminal p/ perguntar (ex.: curl|bash sem tty): falhe AQUI, com
+# o comando pronto, em vez de deixar o node recusar dois passos adiante com uma mensagem tecnica.
+if [ -z "$NAME" ] || [ -z "$ROLE" ] || [ -z "$FOCUS" ]; then
+  warn "identidade incompleta — o CLAUDE.md precisa de nome, funcao e foco."
+  warn "  Rode assim:  bash install/install.sh --name \"Seu Nome\" --role \"Sua Funcao\" --focus \"Suas areas\""
+  exit 1
 fi
 RENDER="$SCRIPT_DIR/lib/render-settings.js"
 ARGS=(--claude-home "$CLAUDE_HOME" --platform mac --profile "$CLAUDE_HOME/.bsaios/profile.json")
@@ -175,27 +252,42 @@ ok "CLAUDE.md (bloco gerenciado; identidade e customizacoes do usuario preservad
 # ---------------------------------------------------------------- 5. ferramentas externas
 say ""
 say "[5/7] Ferramentas externas (rtk, graphify, agent-browser)"
+# O 3o argumento instala SO o binario; o 4o (post) faz a integracao. A divisao existe porque so o post
+# depende do PATH recem-atualizado pelo ensure_session_path (o bin acabou de nascer em ~/.local/bin).
 # rtk no macOS: metodo oficial recomendado e o Homebrew; cai para o instalador curl|sh se nao houver brew.
 ext_tool "rtk" "rtk --version" \
   "brew install rtk || curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh" \
   "rtk init -g"
 ext_tool "graphify" "graphify --version" \
-  "uv tool install graphifyy && graphify install && graphify claude install"
+  "uv tool install graphifyy" \
+  "graphify install && graphify claude install"
 ext_tool "agent-browser" "agent-browser --version" \
-  "npm install -g agent-browser && agent-browser install && npx -y skills add vercel-labs/agent-browser -a claude-code -g -y && (npx -y skills remove find-skills -g -y >/dev/null 2>&1 || true)"
+  "npm install -g agent-browser" \
+  "agent-browser install && npx -y skills add vercel-labs/agent-browser -a claude-code -g -y && (npx -y skills remove find-skills -g -y >/dev/null 2>&1 || true)"
 
 # ---------------------------------------------------------------- 6. extras
 say ""
 say "[6/7] Extras"
-if [ $DRY_RUN -eq 1 ]; then
-  ok "dry-run: pulando PyYAML"
+PYYAML_CMD="python3 -m pip install --user --break-system-packages pyyaml"
+if [ $DRY_RUN -eq 1 ] || [ $SKIP_TOOLS -eq 1 ]; then
+  ok "PyYAML pulado (dry-run/--skip-tools)"
+elif ! command -v python3 >/dev/null 2>&1; then
+  warn "python3 ausente — o hook validate-agent-frontmatter fica inerte. Depois: brew install python && $PYYAML_CMD"
+elif python3 -c "import yaml" >/dev/null 2>&1; then
+  ok "PyYAML ja presente"
 else
-  if python3 -c "import yaml" >/dev/null 2>&1; then ok "PyYAML ja presente"
+  # Duas tentativas porque os dois python3 do macOS querem coisas opostas: o do Homebrew e
+  # externally-managed (PEP 668) e EXIGE --break-system-packages; o da Apple (3.9/pip 21) nao conhece
+  # essa flag mas tambem nao tem o marcador PEP 668, entao aceita --user puro. Quietas de proposito:
+  # a 1a SEMPRE falha num dos dois, e o veredito e o 'import yaml' abaixo, nao o exit code do pip.
+  if $PYYAML_CMD >/dev/null 2>&1 || python3 -m pip install --user pyyaml >/dev/null 2>&1; then :; fi
+  if python3 -c "import yaml" >/dev/null 2>&1; then
+    ok "PyYAML instalado"
   else
-    python3 -m pip install --user --break-system-packages pyyaml >/dev/null 2>&1 \
-      || python3 -m pip install --user pyyaml >/dev/null 2>&1 \
-      || warn "nao consegui instalar PyYAML — o hook validate-agent-frontmatter fica inerte ate: python3 -m pip install --user pyyaml"
-    python3 -c "import yaml" >/dev/null 2>&1 && ok "PyYAML instalado"
+    warn "nao consegui instalar PyYAML — o hook validate-agent-frontmatter fica inerte."
+    warn "  Diagnostico da tentativa:"
+    $PYYAML_CMD 2>&1 | tail -8 | sed 's/^/      /' || true
+    warn "  Depois de resolver, rode: $PYYAML_CMD"
   fi
 fi
 
