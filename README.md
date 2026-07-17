@@ -38,7 +38,7 @@ gratuito, da Microsoft.
 ### Passo 2 — Crie sua pasta de projetos
 
 Todo o seu trabalho vai morar **numa pasta só**, organizada por projeto. Isso evita bagunça e evita
-o erro mais comum do time: **rodar comando no lugar errado** (fora de uma pasta sua, dá erro).
+o erro mais comum: **rodar comando no lugar errado** (fora de uma pasta sua, dá erro).
 
 1. **Windows:** abra o **Explorador de Arquivos** → entre em **Documentos** → botão direito →
    **Novo → Pasta** → nomeie **`Projetos`**.
@@ -59,7 +59,7 @@ o erro mais comum do time: **rodar comando no lugar errado** (fora de uma pasta 
 ### Passo 4 — Abra o terminal dentro do VS Code
 
 O **terminal** é onde você cola comandos. No VS Code ele fica **na própria janela** — você não
-precisa caçar um programa separado (essa era a maior confusão do time).
+precisa caçar um programa separado.
 
 1. Menu **Terminal → Novo Terminal** — ou o atalho **Ctrl + `** (a tecla da crase, logo abaixo do Esc).
 2. Abre um painel embaixo com um cursor piscando. É aí que você cola o comando do próximo passo.
