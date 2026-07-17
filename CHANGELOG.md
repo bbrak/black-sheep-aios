@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.3] — 2026-07-17
+
 ### Modificado
 - **O banner de update aparece na mesma sessão (sem lag de "uma sessão atrasado").** Antes, a checagem
   disparava a busca de versão num processo **destacado**, cujo resultado só valia na sessão seguinte —
