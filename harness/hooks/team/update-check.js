@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Black Sheep AIOS — checagem de defasagem do harness (banner nao-bloqueante).
+// Black Sheep AIOS — checagem de defasagem do harness (banner de update).
 // Usado por session-context.js (SessionStart). Compara a versao instalada (.bsaios/version.json)
-// com o VERSION do repo (raw). FAIL-SOFT e ZERO LATENCIA: o banner sai do cache (leitura sync
-// instantanea); a rede so acontece 1x/dia num processo DESTACADO que nao trava a sessao atual.
-// Offline / sem git / CI => silencio.
+// com o VERSION do repo (raw). Cache fresco (< TTL) => leitura instantanea. Cache velho => busca
+// SINCRONA e time-boxed (ate ~2,5s, no maximo 1x por TTL) para o banner refletir um release novo na
+// MESMA sessao — sem comando manual. FAIL-SOFT: offline / rede lenta / sem git / CI => cache atual ou silencio.
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { spawn } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const REF = process.env.BSAIOS_UPDATE_REF || 'stable';
 // origem do VERSION; overridavel para forks/self-host e e2e (aceita um caminho local/file://)
@@ -74,8 +74,8 @@ if (process.argv[2] === '--refresh') {
   }
 }
 
-// Como modulo: linha do banner (string) ou null. SYNC — nunca bloqueia na rede (dispara refresh
-// destacado quando o cache expira; o banner desta sessao sai do cache atual).
+// Como modulo: linha do banner (string) ou null. Quando o cache expira, busca a versao de forma
+// SINCRONA e time-boxed (o banner ja reflete o release nesta sessao); caso contrario, leitura instantanea.
 function updateBannerLine(claudeHome) {
   try {
     if (process.env.CI) return null;
@@ -84,12 +84,16 @@ function updateBannerLine(claudeHome) {
     if (!local || !local.product_version) return null; // harness antigo / nao instalado => silencio
 
     const cachePath = path.join(stateDir, 'update-check.json');
-    const cache = readJson(cachePath) || {};
+    let cache = readJson(cachePath) || {};
     const fresh = cache.checked_at && cache.ref === REF && (Date.now() - Date.parse(cache.checked_at) < TTL_MS);
 
     if (!fresh) {
-      try { spawn(process.execPath, [__filename, '--refresh', claudeHome], { detached: true, stdio: 'ignore' }).unref(); }
-      catch { /* fail-soft */ }
+      // cache velho => busca SINCRONA e time-boxed (reusa o modo --refresh num filho); assim o banner
+      // reflete o release na MESMA sessao, sem comando manual. Rede lenta/offline => fail-soft, usa o cache atual.
+      try {
+        execFileSync(process.execPath, [__filename, '--refresh', claudeHome], { timeout: NET_TIMEOUT_MS + 1000, stdio: 'ignore' });
+        cache = readJson(cachePath) || cache;
+      } catch { /* fail-soft: mantem o cache anterior */ }
     }
 
     const latest = cache.latest_version;
