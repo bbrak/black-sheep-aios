@@ -1,6 +1,6 @@
 {
   "name": "bsaios-core",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Black Sheep AIOS core plugin - 53 skills (49 distilled from ECC 2.0.0-rc.1 with gold-merged improvements + 4 vendored from Superpowers) + GateGuard hooks. The 21 ECC agents were moved to harness/agents (user scope, team-os enrolled), part of 44 agents total - UPDATE 001. VENDORED: never reinstall from the upstream ECC marketplace, or the gold-merged files will be overwritten.",
   "author": {
     "name": "Black Sheep AIOS"

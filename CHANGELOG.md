@@ -9,6 +9,8 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.4] — 2026-07-18
+
 ### Corrigido
 - **CRÍTICO — o `/bsaios-update` não puxava tag movida (release não chegava ao time).** Publicar é
   mover a tag `stable`/`latest` à força. O updater fazia `git fetch --depth 1 --tags origin <ref>`
