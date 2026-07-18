@@ -30,6 +30,8 @@ jobs:
         run: bash install/test/cycle.sh
       - name: E2E publicar skill -> banner -> /bsaios-update (git clone/pull real, remote local)
         run: bash install/test/e2e-publish.sh
+      - name: Regressao do bug de tag movida no /bsaios-update (git fetch --force)
+        run: bash install/test/regression-moved-tag.sh
 
   install-macos:
     name: install.sh --dry-run + verify (macOS)

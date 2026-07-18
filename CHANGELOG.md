@@ -9,6 +9,19 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.2.4] — 2026-07-18
+
+### Corrigido
+- **CRÍTICO — o `/bsaios-update` não puxava tag movida (release não chegava ao time).** Publicar é
+  mover a tag `stable`/`latest` à força. O updater fazia `git fetch --depth 1 --tags origin <ref>`
+  **sem `--force`**: numa tag movida o git **rejeita** ("would clobber existing tag"), o fetch sai
+  `!= 0`, o updater caía no fallback e dava checkout na **tag velha** → falso *"já está atualizado"* →
+  o colaborador **nunca recebia o release**. Adicionado `--force` ao fetch (primário e fallback),
+  alinhando ao que `bootstrap.sh`/`.ps1` já faziam. Coberto por novo teste de regressão
+  [`regression-moved-tag.sh`](install/test/regression-moved-tag.sh) (reproduz o cenário real: clone
+  criado via `--ref latest`, depois update via `stable`), rodado no CI. Gatilho em produção: máquina
+  cujo clone-fonte foi criado por um ref e atualizado por outro (canário → stable).
+
 ## [1.2.3] — 2026-07-17
 
 ### Modificado
