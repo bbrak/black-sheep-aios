@@ -125,8 +125,11 @@ function ensureSourceClone(dir, gitRef, doPull) {
       catch { git(['clone', '--depth', '1', REPO_URL, dir]); } // ref pode nao existir ainda
     } else if (doPull) {
       say('Atualizando o clone-fonte (' + gitRef + ')...');
-      try { git(['-C', dir, 'fetch', '--depth', '1', '--tags', 'origin', gitRef]); git(['-C', dir, 'checkout', '-f', 'FETCH_HEAD']); }
-      catch { try { git(['-C', dir, 'fetch', 'origin']); git(['-C', dir, 'checkout', '-f', gitRef]); } catch { warn('nao consegui atualizar o clone; usando o que ja existe'); } }
+      // --force e OBRIGATORIO: publicar = mover a tag stable/latest a forca. Sem --force, o
+      // 'git fetch --tags' REJEITA a tag movida ("would clobber existing tag"), sai != 0, o updater
+      // cai no fallback e da checkout na tag VELHA -> falso "ja atualizado". Nunca remover o --force.
+      try { git(['-C', dir, 'fetch', '--depth', '1', '--force', '--tags', 'origin', gitRef]); git(['-C', dir, 'checkout', '-f', 'FETCH_HEAD']); }
+      catch { try { git(['-C', dir, 'fetch', '--force', '--tags', 'origin', gitRef]); git(['-C', dir, 'checkout', '-f', gitRef]); } catch { warn('nao consegui atualizar o clone; usando o que ja existe'); } }
     }
   } catch (e) {
     if (!fs.existsSync(path.join(dir, 'install', 'manifest.json'))) die('nao consegui obter o repo-fonte: ' + e.message);
