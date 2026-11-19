@@ -262,7 +262,7 @@ para colar senhas ou tokens no chat.
 
 | Camada | Conteúdo técnico | Em outras palavras |
 |---|---|---|
-| **Plugin `bsaios-core`** | 53 skills curadas: 49 destiladas do ECC + 4 do Superpowers (`brainstorming`, `systematic-debugging`, `using-git-worktrees`, `finishing-a-development-branch`) + GateGuard | O pacote principal de atalhos prontos, incluindo a proteção GateGuard |
+| **Plugin `bsaios-core`** | 54 skills curadas: 49 destiladas do ECC + 4 do Superpowers (`brainstorming`, `systematic-debugging`, `using-git-worktrees`, `finishing-a-development-branch`) + 1 da Vercel Labs (`find-skills`) + GateGuard | O pacote principal de atalhos prontos, incluindo a proteção GateGuard |
 | **Skills de usuário (6)** | `team-os`, `agent-browser`, `graphify`, `prompt-master`, `ui-ux-pro-max`, `verify-frontend-change` | Seis atalhos extras, cada um para uma tarefa específica |
 | **Agents (44)** | 21 ECC para o team-os + 15 do time `dev-*` + 8 de marketing/negócio | 44 "ajudantes especializados" prontos, de dev a marketing |
 | **Hooks** | skill-suggester, loop-detector, session-context, validate-agent-frontmatter, git-moment-advisor, GateGuard | Seis "travas/lembretes automáticos" contra erros |
@@ -348,7 +348,7 @@ black-sheep-aios/
 │   └── test/                          # sandbox.sh, bootstrap-check.sh (testes offline isolados)
 ├── harness/                           # a caixa de ferramentas que vai para ~/.claude
 │   └── skills/ (6)  agents/ (44)  hooks/  rules/ (8)  settings.team.json  CLAUDE.md.template
-├── plugins/bsaios-core/               # o marketplace local (53 skills + GateGuard)
+├── plugins/bsaios-core/               # o marketplace local (54 skills + GateGuard)
 ├── assist/INSTALL-ASSIST-PROMPT.md    # o assistente de instalação por IA
 └── docs/                              # gateguard.md, harness-updates.md, licenses.md, specs/
 ```
