@@ -9,6 +9,15 @@ sincronizam dela via [`install/lib/sync-manifest.js`](install/lib/sync-manifest.
 
 ## [Não lançado]
 
+## [1.3.0] — 2026-11-19
+
+### Adicionado
+- **Skill `find-skills`** no plugin `bsaios-core`: o Claude busca e sugere skills prontas do ecossistema
+  aberto (`npx skills find`) quando alguém pergunta "tem alguma skill pra X?". Vem do
+  [`vercel-labs/skills`](https://github.com/vercel-labs/skills) com uma mudança nossa: nunca instala
+  outra skill sem o "sim" da pessoa para aquela skill (tiramos o `-y` do `npx skills add`), e lê a skill
+  antes de oferecer a instalação.
+
 ## [1.2.4] — 2026-07-18
 
 ### Corrigido
